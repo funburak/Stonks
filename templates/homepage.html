@@ -18,22 +18,30 @@
 </div>
 
 {% if stock_news %}
-<div class="max-w-4xl mx-auto mt-8">
-    <h2 class="text-2xl font-semibold text-center">Latest Stock News From Your Watchlist</h2>
+<div class="max-w-5xl mx-auto mt-8">
+    <h2 class="text-2xl font-semibold text-center mb-6">Latest Stock News From Your Watchlist</h2>
 
     {% for symbol, news in stock_news.items() %}
-    <div class="bg-white shadow-lg rounded-lg p-4 mt-6">
-        <h3 class="text-xl font-bold text-gray-800">{{ symbol }}</h3>
-        <ul class="list-disc pl-5 mt-2">
+    <div class="mb-8">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">{{ symbol }}</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {% for article in news %}
-            <li class="mt-2">
-                <a href="{{ article.url }}" target="_blank" class="text-blue-500 hover:underline">
-                    {{ article.headline }}
-                </a>
-                <p class="text-sm text-gray-600">{{ article.summary }}</p>
-            </li>
+            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+                {% if article.image %}
+                <img src="{{ article.image }}" alt="News thumbnail" class="w-full h-40 object-cover">
+                {% endif %}
+
+                <div class="p-4">
+                    <h4 class="text-lg font-semibold mb-2">
+                        <a href="{{ article.url }}" target="_blank" class="text-blue-500 hover:underline">
+                            {{ article.headline }}
+                        </a>
+                    </h4>
+                    <p class="text-sm text-gray-600">{{ article.summary }}</p>
+                </div>
+            </div>
             {% endfor %}
-        </ul>
+        </div>
     </div>
     {% endfor %}
 </div>

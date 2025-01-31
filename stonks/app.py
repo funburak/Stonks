@@ -67,7 +67,7 @@ def get_stock_news(symbol):
     response = requests.get(url)
     if response.status_code == 200:
         print(f"Requesting news for {symbol}")
-        return response.json()[:2]
+        return response.json()[:3] # Return only the first 3 news
     return []
 
 
