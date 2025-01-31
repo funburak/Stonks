@@ -47,28 +47,28 @@ def homepage():
 def watchlist_page():
     if 'username' in session:
         user = User.query.filter_by(username=session['username']).first()
-        
+
         if not user.watchlist:
             user.watchlist = Watchlist(user=user)
             database.session.commit()
-
+        user_watchlist = user.watchlist
         if request.method == 'POST':
             stock_symbol = request.form.get('stock')
 
             stock = Stock.query.filter_by(symbol=stock_symbol).first()
             if stock:
-                if stock in user.watchlist.stocks:
+                if stock in user_watchlist.stocks:
                     flash('Stock already in watchlist', 'danger')
                     return redirect(url_for('watchlist_page'))
                 else:
-                    user.watchlist.stocks.append(stock)
+                    user_watchlist.stocks.append(stock)
                     database.session.commit()
             else:
                 flash('Stock not found', 'danger')
             
             return redirect(url_for('watchlist_page'))
         
-        return render_template('stock/watchlist.html', watchlist=user.watchlist.stocks)
+        return render_template('stock/watchlist.html', watchlist=user_watchlist)
     else:
         flash('Please login to view your watchlist', 'danger')
         return redirect(url_for('login'))
@@ -78,11 +78,17 @@ def delete_stock(stock_id):
     if 'username' in session:
         user = User.query.filter_by(username=session['username']).first()
 
+        user_watchlist = user.watchlist
+
+        if not user_watchlist:
+            flash('Watchlist not found', 'danger')
+            return redirect(url_for('watchlist_page'))
+        
         # Delete stock from watchlist
         stock = Stock.query.filter_by(id=stock_id).first()
 
-        if stock in user.watchlist.stocks:
-            user.watchlist.stocks.remove(stock)
+        if stock in user_watchlist.stocks:
+            user_watchlist.stocks.remove(stock)
             database.session.commit()
     else:
         flash('Please login to view your watchlist', 'danger')
@@ -94,9 +100,16 @@ def delete_stock(stock_id):
 def stock_details(stock_id):
     if 'username' in session:
         user = User.query.filter_by(username=session['username']).first()
-        stock = Stock.query.filter_by(id=stock_id).first()
 
-        if stock and stock in user.watchlist.stocks:
+        user_watchlist = user.watchlist
+
+        if not user_watchlist:
+            flash('Watchlist not found', 'danger')
+            return redirect(url_for('watchlist_page'))
+        
+        stock = Stock.query.filter(Stock.id == stock_id, Stock.watchlists.contains(user_watchlist)).first()
+
+        if stock:
             return render_template('stock/stock_details.html', stock=stock)
         else:
             flash('Stock not found', 'danger')

@@ -29,7 +29,7 @@
     <h3 class="text-lg font-semibold mb-4">Your Selected Stocks:</h3>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {% for stock in watchlist %}
+        {% for stock in watchlist.stocks | sort(attribute='symbol') %}
         <div class="bg-white shadow-lg rounded-lg p-4 border border-gray-200 flex justify-between items-center">
             <span class="text-lg font-medium text-gray-800">{{ stock.symbol }}</span>
     
