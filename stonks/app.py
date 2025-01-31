@@ -36,14 +36,6 @@ with app.app_context():
     # database.session.commit()
 
 @app.route('/')
-def index():
-    if 'username' in session:
-        return render_template('homepage.html')
-    else:
-        flash("You must be logged in to view this page", 'danger')
-        return redirect(url_for('login'))
-
-@app.route('/homepage')
 def homepage():
     if 'username' in session:
         return render_template('homepage.html')
@@ -71,10 +63,11 @@ def watchlist_page():
                 else:
                     user.watchlist.stocks.append(stock)
                     database.session.commit()
-                    request.form = None # Clear form
             else:
                 flash('Stock not found', 'danger')
-                return redirect(url_for('watchlist_page'))
+            
+            return redirect(url_for('watchlist_page'))
+        
         return render_template('stock/watchlist.html', watchlist=user.watchlist.stocks)
     else:
         flash('Please login to view your watchlist', 'danger')
