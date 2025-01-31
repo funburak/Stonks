@@ -4,10 +4,13 @@ from stonks.forms import SignupForm, LoginForm, ForgotPasswordForm, ChangePasswo
 from stonks.models import User, Stock, Watchlist, database
 from stonks.config import config
 from stonks.mail import MailHandler
+from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__, template_folder="../templates")
 
 app.config.from_object(config)
+
+csrf = CSRFProtect(app)
 
 mail_handler = MailHandler(app)
 
@@ -111,6 +114,11 @@ def stock_details(stock_id):
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
+
+    # If user is already logged in, redirect to homepage
+    if 'username' in session:
+        return redirect(url_for('homepage'))
+
     form = SignupForm(request.form)
     if request.method == 'POST' and form.validate_on_submit():
         email = form.email.data
@@ -145,6 +153,11 @@ def signup():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+
+    # If user is already logged in, redirect to homepage
+    if 'username' in session:
+        return redirect(url_for('homepage'))
+
     form = LoginForm(request.form)
 
     if 'autofill_username' in session: # Autofill username if user just signed up
@@ -180,7 +193,6 @@ def forgot_password():
                 flash('Reset password link sent to your email', 'success')
             else:
                 flash('Failed to send email', 'danger')
-            flash('Reset password link sent to your email', 'success')
         else:
             flash('Email not found', 'danger')
             return redirect(url_for('forgot_password'))

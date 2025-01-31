@@ -17,6 +17,7 @@
 
     <!-- Stock Input Form -->
     <form method="POST" class="flex space-x-2 mb-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="text" name="stock" placeholder="Enter stock symbol"
             class="border border-gray-300 rounded-lg px-4 py-2 w-full focus:ring focus:ring-blue-300 focus:outline-none"
             required>
@@ -40,7 +41,7 @@
     
                 <!-- Remove Button -->
                 <form action="{{ url_for('delete_stock', stock_id=stock.id) }}" method="POST">
-                    <!-- <input type="hidden" name="stock" value="{{ stock.symbol }}"> -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition">
                         Remove
                     </button>
