@@ -1,0 +1,17 @@
+### Flask ###
+stonks/instance/*
+!stonks/instance/.gitignore
+.webassets-cache
+.env
+stonks/__pycache__/
+.webassets-cache/
+
+# Environments
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+*.txt

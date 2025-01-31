@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {% block head %}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}{% endblock %} | stonks</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    {% endblock %}
+  </head>
+  <body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div id="alert-box" class="fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded shadow-md
+            {% if category == 'success' %} bg-green-500 {% elif category == 'danger' %} bg-red-500 
+            {% elif category == 'warning' %} bg-yellow-500 {% else %} bg-blue-500 {% endif %} text-white">
+            <p>{{ message }}</p>
+          </div>
+        {% endfor %}
+        <script>
+          setTimeout(function() {
+            document.querySelectorAll("#alert-box").forEach(el => el.style.display = 'none');
+          }, 3000);
+        </script>
+      {% endif %}
+    {% endwith %}
+    <div id="content">{% block content %}{% endblock %}</div>
+    <div id="footer" class="flex justify-center">
+      <p class="text-xs">&copy; Copyright 2025</p>
+    </div>
+  </body>
+</html>
