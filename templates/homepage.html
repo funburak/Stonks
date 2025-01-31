@@ -16,4 +16,30 @@
         {% endif %}
     </nav>
 </div>
+
+{% if stock_news %}
+<div class="max-w-4xl mx-auto mt-8">
+    <h2 class="text-2xl font-semibold text-center">Latest Stock News From Your Watchlist</h2>
+
+    {% for symbol, news in stock_news.items() %}
+    <div class="bg-white shadow-lg rounded-lg p-4 mt-6">
+        <h3 class="text-xl font-bold text-gray-800">{{ symbol }}</h3>
+        <ul class="list-disc pl-5 mt-2">
+            {% for article in news %}
+            <li class="mt-2">
+                <a href="{{ article.url }}" target="_blank" class="text-blue-500 hover:underline">
+                    {{ article.headline }}
+                </a>
+                <p class="text-sm text-gray-600">{{ article.summary }}</p>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center mt-8">
+    <p class="text-gray-600">No stock news available. Add stocks to your watchlist to see the latest news.</p>
+</div>
+{% endif %}
 {% endblock %}

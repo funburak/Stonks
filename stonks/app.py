@@ -1,3 +1,4 @@
+import requests
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 
 from stonks.forms import SignupForm, LoginForm, ForgotPasswordForm, ChangePasswordForm
@@ -5,6 +6,9 @@ from stonks.models import User, Stock, Watchlist, database
 from stonks.config import config
 from stonks.mail import MailHandler
 from flask_wtf.csrf import CSRFProtect
+
+from flask_caching import Cache
+from datetime import datetime
 
 app = Flask(__name__, template_folder="../templates")
 
@@ -15,6 +19,8 @@ csrf = CSRFProtect(app)
 mail_handler = MailHandler(app)
 
 database.init_app(app)
+
+cache = Cache(app)
 
 with app.app_context():
     database.create_all()
@@ -38,10 +44,32 @@ with app.app_context():
 @app.route('/')
 def homepage():
     if 'username' in session:
-        return render_template('homepage.html')
+        user = User.query.filter_by(username=session['username']).first()
+        if user and user.watchlist:
+            stock_symbols = [stock.symbol for stock in user.watchlist.stocks]
+            stock_news = {}
+
+            for symbol in stock_symbols:
+                stock_news[symbol] = get_stock_news(symbol)
+            
+            return render_template('homepage.html',stock_news=stock_news)        
     else:
         flash("You must be logged in to view this page", 'danger')
         return redirect(url_for('login'))
+    
+    return render_template('homepage.html', stock_news={})
+    
+@cache.memoize(timeout=600) # Cache for 10 minutes
+def get_stock_news(symbol):
+    today = datetime.now().date()
+    yesterday = today.replace(day=today.day - 1)
+    url = f"https://finnhub.io/api/v1/company-news?symbol={symbol}&from={yesterday}&to={today}&token={app.config['FINNHUB_API_KEY']}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        print(f"Requesting news for {symbol}")
+        return response.json()[:2]
+    return []
+
 
 @app.route('/watchlist', methods=['GET', 'POST'])
 def watchlist_page():
@@ -63,6 +91,8 @@ def watchlist_page():
                 else:
                     user_watchlist.stocks.append(stock)
                     database.session.commit()
+
+                    cache.delete_memoized(get_stock_news, stock_symbol)
             else:
                 flash('Stock not found', 'danger')
             
@@ -90,6 +120,8 @@ def delete_stock(stock_id):
         if stock in user_watchlist.stocks:
             user_watchlist.stocks.remove(stock)
             database.session.commit()
+
+            cache.delete_memoized(get_stock_news, stock.symbol)
     else:
         flash('Please login to view your watchlist', 'danger')
         return redirect(url_for('login'))
