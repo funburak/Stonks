@@ -21,12 +21,12 @@
         </div>
 
         <div class="flex justify-end mt-6 space-x-3">
-            <a href="{{ url_for('watchlist_page') }}" 
+            <a href="{{ url_for('stock.watchlist_page') }}" 
                class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
                 Back to Watchlist
             </a>
 
-            <form action="{{ url_for('delete_stock', stock_id=stock.id) }}" method="POST">
+            <form action="{{ url_for('stock.delete_stock', stock_id=stock.id) }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" 
                         class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">

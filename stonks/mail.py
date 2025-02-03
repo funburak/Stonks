@@ -8,7 +8,7 @@ class MailHandler:
 
     def send_reset_email(self, token, recipient):
         msg = Message('Reset Password', recipients=recipient)
-        reset_url = url_for('reset_password', token=token, _external=True)
+        reset_url = url_for('auth.reset_password', token=token, _external=True)
         msg.body = f"Click the link to reset your password \n {reset_url} \n This link will expire in 10 minutes"
         try:
             self.mail.send(msg)

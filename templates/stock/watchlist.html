@@ -4,7 +4,7 @@
 {% block content %}
 <div class="max-w-3xl mx-auto mt-10 relative">
     <!-- Home Icon Button (Top-Left) -->
-    <a href="{{ url_for('homepage') }}" 
+    <a href="{{ url_for('main.homepage') }}" 
        class="absolute top-0 left-0 p-2">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" 
              class="w-8 h-8 text-gray-700 hover:text-gray-900 transition">
@@ -34,13 +34,13 @@
             <span class="text-lg font-medium text-gray-800">{{ stock.symbol }}</span>
     
             <div class="flex space-x-2">
-                <a href="{{ url_for('stock_details', stock_id=stock.id) }}" 
+                <a href="{{ url_for('stock.stock_details', stock_id=stock.id) }}" 
                    class="bg-gray-500 text-white px-3 py-1 rounded-lg hover:bg-gray-600 transition">
                     Info
                 </a>
     
                 <!-- Remove Button -->
-                <form action="{{ url_for('delete_stock', stock_id=stock.id) }}" method="POST">
+                <form action="{{ url_for('stock.delete_stock', stock_id=stock.id) }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition">
                         Remove

@@ -22,8 +22,7 @@
           </label>
 
           {% if field.name == "password" %}
-          <!-- Forgot Password Link (Only for Password Field) -->
-          <a href="{{ url_for('forgot_password') }}" 
+          <a href="{{ url_for('auth.forgot_password') }}" 
              class="text-sm text-indigo-600 hover:text-indigo-500">
             Forgot password?
           </a>

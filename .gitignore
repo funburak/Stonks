@@ -1,4 +1,5 @@
 ### Flask ###
+instance/
 stonks/instance/*
 !stonks/instance/.gitignore
 .webassets-cache
