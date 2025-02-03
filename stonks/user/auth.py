@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
-from stonks.forms import SignupForm, LoginForm, ForgotPasswordForm, ChangePasswordForm
-from stonks.models import User, Watchlist, database
+from stonks.user.forms import SignupForm, LoginForm, ForgotPasswordForm, ChangePasswordForm
+from stonks.user.models import User, Watchlist, database
 
 auth = Blueprint('auth', __name__)
 
@@ -9,7 +9,7 @@ def signup():
 
     # If user is already logged in, redirect to homepage
     if 'username' in session:
-        return redirect(url_for('main.homepage'))
+        return redirect(url_for('dashboard.homepage'))
     
     form = SignupForm(request.form)
     if request.method == 'POST' and form.validate_on_submit():
@@ -47,7 +47,7 @@ def signup():
 def login():
     # If user is already logged in, redirect to homepage
     if 'username' in session:
-        return redirect(url_for('main.homepage'))
+        return redirect(url_for('dashboard.homepage'))
     
     form = LoginForm(request.form)
 
@@ -62,7 +62,7 @@ def login():
         if user and user.check_password(password):
             session['username'] = user.username
             flash('Logged in successfully', 'success')
-            return redirect(url_for('main.homepage'))
+            return redirect(url_for('dashboard.homepage'))
         else:
             flash('Invalid username or password', 'danger')
             return redirect(url_for('auth.login'))

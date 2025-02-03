@@ -5,6 +5,7 @@ stonks/instance/*
 .webassets-cache
 .env
 stonks/__pycache__/
+*/*/__pycache__/
 .webassets-cache/
 
 # Environments

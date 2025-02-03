@@ -1,5 +1,5 @@
-from flask_mail import Mail, Message
 from flask import url_for
+from flask_mail import Mail, Message
 
 class MailHandler:
 

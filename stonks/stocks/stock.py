@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
-from stonks.models import User, Stock, Watchlist, database
-from stonks.extensions import cache
+from stonks.user.models import User, Stock, Watchlist, database
+from stonks.helper.extensions import cache
 
 from datetime import datetime, timedelta
 import requests
@@ -63,11 +63,11 @@ def delete_stock(stock_id):
     if 'username' in session:
         user = User.query.filter_by(username=session['username']).first()
 
-        user_watchlist = user.watchlist
-
-        if not user_watchlist:
+        if not user.watchlist:
             flash('Watchlist not found', 'danger')
             return redirect(url_for('stock.watchlist_page'))
+
+        user_watchlist = user.watchlist
         
         stock = Stock.query.filter_by(id=stock_id).first()
 
@@ -90,15 +90,15 @@ def stock_details(stock_id):
     if 'username' in session:
         user = User.query.filter_by(username=session['username']).first()
 
-        user_watchlist = user.watchlist
-
-        if not user_watchlist:
+        if not user.watchlist:
             flash('Watchlist not found', 'danger')
-            return redirect(url_for('watchlist_page'))
+            return redirect(url_for('stock.watchlist_page'))
+        
+        user_watchlist = user.watchlist
         
         stock = Stock.query.filter_by(id=stock_id).first()
 
-        if stock:
+        if stock in user_watchlist.stocks:
             return render_template('stock/stock_details.html', stock=stock)
         else:
             flash('Stock not found', 'danger')

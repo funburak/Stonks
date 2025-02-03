@@ -1,9 +1,9 @@
 from flask import Flask
-from stonks.config import config
-from stonks.mail import MailHandler
+from stonks.helper.config import config
+from stonks.helper.mail import MailHandler
 from flask_wtf.csrf import CSRFProtect
-from stonks.models import Stock, database
-from stonks.extensions import cache
+from stonks.user.models import Stock, database
+from stonks.helper.extensions import cache
 
 
 def create_app():
@@ -50,16 +50,10 @@ def register_mail(app: Flask):
     app.extensions['mail_handler'] = mail_handler
 
 def register_blueprints(app: Flask):
-    from stonks.main import main
-    from stonks.auth import auth
-    from stonks.stock import stock
+    from stonks.dashboard import dashboard
+    from stonks.user.auth import auth
+    from stonks.stocks.stock import stock
 
-    app.register_blueprint(main)
+    app.register_blueprint(dashboard)
     app.register_blueprint(auth)
     app.register_blueprint(stock)
-    
-
-if __name__ == '__main__':
-    app = create_app()
-    cache.init_app(app)
-    app.run(debug=True)

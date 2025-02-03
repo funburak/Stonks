@@ -1,10 +1,10 @@
 from flask import Blueprint, render_template, flash, redirect, url_for, session
-from stonks.models import User
-from stonks.stock import get_stock_news
+from stonks.user.models import User
+from stonks.stocks.stock import get_stock_news
 
-main = Blueprint('main', __name__)
+dashboard = Blueprint('dashboard', __name__)
 
-@main.route('/')
+@dashboard.route('/')
 def homepage():
     if 'username' in session:
         user = User.query.filter_by(username=session['username']).first()
