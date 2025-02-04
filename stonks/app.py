@@ -2,8 +2,8 @@ from flask import Flask
 from stonks.helper.config import config
 from stonks.helper.mail import MailHandler
 from flask_wtf.csrf import CSRFProtect
-from stonks.user.models import Stock, database
-from stonks.helper.extensions import cache
+from stonks.user.models import database
+from stonks.helper.extensions import cache, login_manager
 
 
 def create_app():
@@ -13,7 +13,7 @@ def create_app():
     start_database(app)
     register_mail(app)
     register_blueprints(app)
-    register_cache(app)
+    register_extensions(app)
 
     return app
 
@@ -23,27 +23,12 @@ def start_database(app: Flask):
     with app.app_context():
         database.create_all()
 
-        # Dummy data
-        # apple_stock = Stock(symbol='AAPL', current_price=120.0, change=1.0, percent_change=0.5,
-        #                     high_price_day=121.0, low_price_day=119.0, open_price_day=119.5)
-        # microsoft_stock = Stock(symbol='MSFT', current_price=220.0, change=2.0, percent_change=1.0,
-        #                         high_price_day=221.0, low_price_day=219.0, open_price_day=219.5)
-        # google_stock = Stock(symbol='GOOGL', current_price=1800.0, change=10.0, percent_change=0.5,
-        #                      high_price_day=1810.0, low_price_day=1790.0, open_price_day=1795.0)
-        # tesla_stock = Stock(symbol='TSLA', current_price=800.0, change=10.0, percent_change=1.0,
-        #                     high_price_day=810.0, low_price_day=790.0, open_price_day=795.0)
-
-        # database.session.add(apple_stock)
-        # database.session.add(microsoft_stock)
-        # database.session.add(google_stock)
-        # database.session.add(tesla_stock)
-        # database.session.commit()
-
 def register_config(app: Flask):
     app.config.from_object(config)
 
-def register_cache(app: Flask):
-    cache.init_app(app)
+def register_extensions(app: Flask):
+    cache.init_app(app) # Initialize cache for the stock news at the homepage
+    login_manager.init_app(app) # Initialize the login manager
 
 def register_mail(app: Flask):
     mail_handler = MailHandler(app)

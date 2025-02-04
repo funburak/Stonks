@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
-
+from flask_login import UserMixin
 from datetime import datetime, timedelta
 import jwt
 
@@ -15,7 +15,7 @@ watchlist_stock_association = database.Table(
 )
 
 
-class User(database.Model):
+class User(UserMixin, database.Model):
     __tablename__ = 'user'
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -65,12 +65,13 @@ class Stock(database.Model):
     __tablename__ = 'stock'
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    symbol: Mapped[str] = mapped_column(nullable=False)
-    current_price: Mapped[float] = mapped_column(nullable=False)
-    change: Mapped[float] = mapped_column(nullable=False)
-    percent_change: Mapped[float] = mapped_column(nullable=False)
-    high_price_day: Mapped[float] = mapped_column(nullable=False)
-    low_price_day: Mapped[float] = mapped_column(nullable=False)
-    open_price_day: Mapped[float] = mapped_column(nullable=False)
+    symbol: Mapped[str] = mapped_column(unique=True, nullable=False) # Stock symbol
+    # current_price: Mapped[float] = mapped_column(nullable=False) # Current price of the stock
+    # change: Mapped[float] = mapped_column(nullable=False) # Change in price
+    # percent_change: Mapped[float] = mapped_column(nullable=False) # Percent change in price
+    # high_price_day: Mapped[float] = mapped_column(nullable=False) # High price of the day
+    # low_price_day: Mapped[float] = mapped_column(nullable=False) # Low price of the day
+    # open_price_day: Mapped[float] = mapped_column(nullable=False) # Open price of the day
+    # # previous_day_price: Mapped[float] = mapped_column(nullable=False) # Previous day price of the stock
 
     watchlists = relationship('Watchlist', secondary=watchlist_stock_association, back_populates='stocks')

@@ -1,16 +1,17 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
 from stonks.user.forms import SignupForm, LoginForm, ForgotPasswordForm, ChangePasswordForm
 from stonks.user.models import User, Watchlist, database
+from flask_login import login_required, login_user, logout_user, current_user
+
 
 auth = Blueprint('auth', __name__)
 
 @auth.route('/signup', methods=['GET', 'POST'])
 def signup():
+    # # If the user is already logged in, redirect to the homepage
+    # if current_user.is_authenticated:
+    #     redirect(url_for('dashboard.homepage'))
 
-    # If user is already logged in, redirect to homepage
-    if 'username' in session:
-        return redirect(url_for('dashboard.homepage'))
-    
     form = SignupForm(request.form)
     if request.method == 'POST' and form.validate_on_submit():
         email = form.email.data
@@ -45,8 +46,8 @@ def signup():
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
-    # If user is already logged in, redirect to homepage
-    if 'username' in session:
+    # If the user is already logged in, redirect to the homepage
+    if current_user.is_authenticated:
         return redirect(url_for('dashboard.homepage'))
     
     form = LoginForm(request.form)
@@ -60,13 +61,14 @@ def login():
 
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.check_password(password):
-            session['username'] = user.username
-            flash('Logged in successfully', 'success')
+            login_user(user=user)
+            session.permanent = True
+            flash(f'Welcome to Stonks! {current_user.username}', 'success')
+
             return redirect(url_for('dashboard.homepage'))
         else:
             flash('Invalid username or password', 'danger')
             return redirect(url_for('auth.login'))
-        
     return render_template('auth/login.html', form=form)
 
 @auth.route('/forgot_password', methods=['GET', 'POST'])
@@ -117,9 +119,8 @@ def reset_password(token):
         return render_template('auth/reset_password.html', form=form, token=token)
     
 @auth.route('/logout')
+@login_required
 def logout():
-    if 'username' in session:
-        session.pop('username')
-        flash('Logged out successfully', 'success')
-
+    logout_user()
+    flash('Logged out successfully', 'success')
     return redirect(url_for('auth.login'))

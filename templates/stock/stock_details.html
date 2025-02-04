@@ -4,40 +4,50 @@
 
 {% block content %}
 <div class="max-w-3xl mx-auto mt-10 relative">
-
     <h2 class="text-2xl font-semibold text-center mb-6">Stock Details</h2>
 
-    {% if stock %}
+    {% if stock_data %}
     <div class="bg-white shadow-lg rounded-lg p-6 border border-gray-200">
-        <h3 class="text-lg font-semibold mb-4 text-gray-900">{{ stock.symbol }}</h3>
+        <!-- Stock Symbol -->
+        <h3 class="text-lg font-semibold mb-4 text-gray-900">{{ stock_data.symbol }}</h3>
 
+        <!-- Stock Data -->
         <div class="grid grid-cols-2 gap-4">
-            <p><span class="font-medium text-gray-600">Current Price:</span> ${{ stock.current_price }}</p>
-            <p><span class="font-medium text-gray-600">Change:</span> {{ stock.change }}</p>
-            <p><span class="font-medium text-gray-600">Percent Change:</span> {{ stock.percent_change }}%</p>
-            <p><span class="font-medium text-gray-600">High (Day):</span> ${{ stock.high_price_day }}</p>
-            <p><span class="font-medium text-gray-600">Low (Day):</span> ${{ stock.low_price_day }}</p>
-            <p><span class="font-medium text-gray-600">Open (Day):</span> ${{ stock.open_price_day }}</p>
+            <p>
+                <span class="font-medium text-gray-600">Open Price:</span>
+                ${{ stock_data.open_price | round(2) if stock_data.get('open_price') else 'N/A' }}
+            </p>
+            <p>
+                <span class="font-medium text-gray-600">High Price (Day):</span>
+                ${{ stock_data.high_price | round(2) if stock_data.get('high_price') else 'N/A' }}
+            </p>
+            <p>
+                <span class="font-medium text-gray-600">Low Price (Day):</span>
+                ${{ stock_data.low_price | round(2) if stock_data.get('low_price') else 'N/A' }}
+            </p>
+            <p>
+                <span class="font-medium text-gray-600">Close Price:</span>
+                ${{ stock_data.close_price | round(2) if stock_data.get('close_price') else 'N/A' }}
+            </p>
         </div>
 
+        <!-- Action Buttons -->
         <div class="flex justify-end mt-6 space-x-3">
             <a href="{{ url_for('stock.watchlist_page') }}" 
                class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
                 Back to Watchlist
             </a>
-
-            <form action="{{ url_for('stock.delete_stock', stock_id=stock.id) }}" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" 
-                        class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
-                    Remove from Watchlist
-                </button>
-            </form>
         </div>
     </div>
     {% else %}
-    <p class="text-center text-gray-600">Stock not found in your watchlist.</p>
+    <!-- Fallback if stock data is not found -->
+    <p class="text-center text-gray-600">Stock details not found or live data unavailable.</p>
+    <div class="text-center mt-4">
+        <a href="{{ url_for('stock.watchlist_page') }}" 
+           class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+            Back to Watchlist
+        </a>
+    </div>
     {% endif %}
-
 </div>
 {% endblock %}

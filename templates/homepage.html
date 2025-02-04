@@ -4,10 +4,10 @@
 
 {% block content %}
 <div class="text-center py-10 bg-gray-50">
-    <h1 class="text-4xl font-bold text-green-700">Welcome to Stonks!</h1>
+    <h1 class="text-4xl font-bold text-green-700">Stonks</h1>
     <p class="text-gray-600 mt-4">Your financial tracking hub.</p>
     <nav class="mt-6">
-        {% if 'username' in session %}
+        {% if current_user.is_authenticated %}
         <a href="{{ url_for('stock.watchlist_page') }}" class="text-blue-500 hover:underline mx-2">Watchlist</a>
         <a href="{{ url_for('auth.logout') }}" class="text-blue-500 hover:underline mx-2">Logout</a>
         {% else %}
@@ -19,25 +19,28 @@
 
 {% if stock_news %}
 <div class="max-w-5xl mx-auto mt-8">
-    <h2 class="text-2xl font-semibold text-center mb-6">Latest Stock News From Your Watchlist</h2>
+    <h2 class="text-2xl font-semibold text-center mb-6">Latest Stock News</h2>
 
-    {% for symbol, news in stock_news.items() %}
+    {% for symbol, articles in stock_news|dictsort %}
     <div class="mb-8">
         <h3 class="text-xl font-bold text-gray-800 mb-4">{{ symbol }}</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {% for article in news %}
+            {% for article in articles %}
             <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-                {% if article.image %}
-                <img src="{{ article.image }}" alt="News thumbnail" class="w-full h-40 object-cover">
+                {% if article.thumbnail %}
+                <img src="{{ article.thumbnail }}" alt="News thumbnail" class="w-full h-40 object-cover">
                 {% endif %}
 
                 <div class="p-4">
                     <h4 class="text-lg font-semibold mb-2">
-                        <a href="{{ article.url }}" target="_blank" class="text-blue-500 hover:underline">
-                            {{ article.headline }}
+                        <a href="{{ article.link }}" target="_blank" class="text-blue-500 hover:underline">
+                            {{ article.title }}
                         </a>
                     </h4>
-                    <p class="text-sm text-gray-600">{{ article.summary }}</p>
+                    <p class="text-sm text-gray-600">
+                        Published on: 
+                        {{ article.publishTime }}
+                    </p>
                 </div>
             </div>
             {% endfor %}

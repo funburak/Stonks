@@ -2,44 +2,57 @@
 {% block title %}Watchlist{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto mt-10 relative">
-    <!-- Home Icon Button (Top-Left) -->
-    <a href="{{ url_for('dashboard.homepage') }}" 
-       class="absolute top-0 left-0 p-2">
+<div class="max-w-3xl mx-auto mt-10">
+    <!-- Home Button -->
+    <a href="{{ url_for('dashboard.homepage') }}" class="absolute top-0 left-0 p-2">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" 
              class="w-8 h-8 text-gray-700 hover:text-gray-900 transition">
-            <path stroke-linecap="round" stroke-linejoin="round" 
-                  d="M3 9.75L12 3l9 6.75M4.5 10.5v10.5h15V10.5" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75L12 3l9 6.75M4.5 10.5v10.5h15V10.5" />
         </svg>
     </a>
 
     <h2 class="text-2xl font-semibold text-center mb-6">Stock Watchlist</h2>
 
-    <!-- Stock Input Form -->
-    <form method="POST" class="flex space-x-2 mb-6">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="text" name="stock" placeholder="Enter stock symbol"
+    <!-- Stock Search Form -->
+    <form method="GET" action="{{ url_for('stock.search_stock') }}" class="flex space-x-2 mb-6">
+        <input type="text" name="q" placeholder="Enter company name..." autocomplete="off"
             class="border border-gray-300 rounded-lg px-4 py-2 w-full focus:ring focus:ring-blue-300 focus:outline-none"
             required>
         <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
-            Add
+            Search
         </button>
     </form>
 
-    <h3 class="text-lg font-semibold mb-4">Your Selected Stocks:</h3>
+    <!-- Search Results Section -->
+    {% if search_results %}
+    <h3 class="text-lg font-semibold mb-4">Search Results:</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        {% for stock in search_results %}
+        <div class="bg-white shadow-lg rounded-lg p-4 border border-gray-200 flex justify-between items-center">
+            <span class="text-lg font-medium text-gray-800">{{ stock.symbol }} - {{ stock.name }}</span>
+            <form action="{{ url_for('stock.add_stock') }}" method="POST">
+                <input type="hidden" name="symbol" value="{{ stock.symbol }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 transition">
+                    Add
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
+    <!-- Watchlist Section -->
+    <h3 class="text-lg font-semibold mt-6">Your Selected Stocks:</h3>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {% for stock in watchlist.stocks | sort(attribute='symbol') %}
         <div class="bg-white shadow-lg rounded-lg p-4 border border-gray-200 flex justify-between items-center">
             <span class="text-lg font-medium text-gray-800">{{ stock.symbol }}</span>
-    
             <div class="flex space-x-2">
                 <a href="{{ url_for('stock.stock_details', stock_id=stock.id) }}" 
                    class="bg-gray-500 text-white px-3 py-1 rounded-lg hover:bg-gray-600 transition">
                     Info
                 </a>
-    
-                <!-- Remove Button -->
                 <form action="{{ url_for('stock.delete_stock', stock_id=stock.id) }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition">
