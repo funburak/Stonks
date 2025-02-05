@@ -9,26 +9,26 @@
     {% if stock_data %}
     <div class="bg-white shadow-lg rounded-lg p-6 border border-gray-200">
         <!-- Stock Symbol -->
-        <h3 class="text-lg font-semibold mb-4 text-gray-900">{{ stock_data.symbol }}</h3>
+        <h3 class="text-lg font-semibold mb-4 text-gray-900" id="stock_header"></h3>
 
         <!-- Stock Data -->
         <div class="grid grid-cols-2 gap-4">
-            <p>
-                <span class="font-medium text-gray-600">Open Price:</span>
-                ${{ stock_data.open_price | round(2) if stock_data.get('open_price') else 'N/A' }}
-            </p>
-            <p>
-                <span class="font-medium text-gray-600">High Price (Day):</span>
-                ${{ stock_data.high_price | round(2) if stock_data.get('high_price') else 'N/A' }}
-            </p>
-            <p>
-                <span class="font-medium text-gray-600">Low Price (Day):</span>
-                ${{ stock_data.low_price | round(2) if stock_data.get('low_price') else 'N/A' }}
-            </p>
-            <p>
-                <span class="font-medium text-gray-600">Close Price:</span>
-                ${{ stock_data.close_price | round(2) if stock_data.get('close_price') else 'N/A' }}
-            </p>
+            <p><span class="font-medium text-gray-600">Open Price:</span> <span id="open_price">N/A</span></p>
+            <p><span class="font-medium text-gray-600">High Price:</span> <span id="high_price">N/A</span></p>
+            <p><span class="font-medium text-gray-600">Low Price:</span> <span id="low_price">N/A</span></p>
+            <p><span class="font-medium text-gray-600">Close Price:</span> <span id="close_price">N/A</span></p>
+        </div>
+
+        <!-- Weekly Stock Price Chart -->
+        <div class="mt-6">
+            <h3 class="text-lg font-semibold text-gray-900">Stock Price (Weekly)</h3>
+            <canvas id="priceChart"></canvas>
+        </div>
+
+        <!-- Percent Change Chart (Bar Chart) -->
+        <div class="mt-6">
+            <h3 class="text-lg font-semibold text-gray-900">Daily % Change</h3>
+            <canvas id="changeChart"></canvas>
         </div>
 
         <!-- Action Buttons -->
@@ -50,4 +50,75 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const stockData = JSON.parse('{{ stock_data | safe }}');
+
+    // Insert stock values dynamically
+    document.getElementById("stock_header").textContent = `${stockData.symbol} - ${stockData.company_name}`;
+    document.getElementById("open_price").textContent = stockData.open_price ? `$${stockData.open_price}` : 'N/A';
+    document.getElementById("high_price").textContent = stockData.high_price ? `$${stockData.high_price}` : 'N/A';
+    document.getElementById("low_price").textContent = stockData.low_price ? `$${stockData.low_price}` : 'N/A';
+    document.getElementById("close_price").textContent = stockData.close_price ? `$${stockData.close_price}` : 'N/A';
+
+    // Line Chart for Closing Prices
+    new Chart(document.getElementById('priceChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: stockData.dates, // 4-hour intervals
+            datasets: [{
+                label: 'Closing Price ($)',
+                data: stockData.closing_prices,
+                borderColor: 'rgba(33, 150, 243, 1)',
+                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true },
+            },
+            scales: {
+                x: { ticks: { display: false } },
+                y: { beginAtZero: false }
+            }
+        }
+    });
+
+
+    // Percent Change Chart (Bar Chart)
+    const percentChanges = stockData.percent_changes;
+    const changeColors = percentChanges.map(value => value >= 0 ? 'rgba(75, 192, 192, 0.8)' : 'rgba(255, 99, 132, 0.8)');
+
+    new Chart(document.getElementById('changeChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: stockData.daily_dates, // Daily dates
+            datasets: [{
+                label: 'Daily % Change',
+                data: stockData.percent_changes, // Day-by-day percent changes
+                backgroundColor: stockData.percent_changes.map(value => value >= 0 ? 'rgba(76, 175, 80, 0.6)' : 'rgba(244, 67, 54, 0.6)'),
+                borderColor: stockData.percent_changes.map(value => value >= 0 ? 'rgba(76, 175, 80, 1)' : 'rgba(244, 67, 54, 1)'),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true },
+            },
+            scales: {
+                x: { ticks: { maxTicksLimit: 7, autoSkip: false } }, // Show all daily dates
+                y: { beginAtZero: false, ticks: { callback: value => `${value}%` } }
+            }
+        }
+    });
+
+</script>
+
 {% endblock %}

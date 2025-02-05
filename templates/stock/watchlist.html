@@ -2,7 +2,7 @@
 {% block title %}Watchlist{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto mt-10">
+<div class="max-w-5xl mx-auto mt-10">
     <!-- Home Button -->
     <a href="{{ url_for('dashboard.homepage') }}" class="absolute top-0 left-0 p-2">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" 
@@ -46,17 +46,34 @@
     <h3 class="text-lg font-semibold mt-6">Your Selected Stocks:</h3>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {% for stock in watchlist.stocks | sort(attribute='symbol') %}
-        <div class="bg-white shadow-lg rounded-lg p-4 border border-gray-200 flex justify-between items-center">
-            <span class="text-lg font-medium text-gray-800">{{ stock.symbol }}</span>
+        <div class="p-4 rounded-lg shadow-lg border transition-all duration-300 
+                    {% if stock.percent_change >= 0 %} bg-green-100 {% else %} bg-red-100 {% endif %}">
+            <div class="flex justify-between items-center mb-4">
+                <!-- Stock Symbol and Percent Change -->
+                <span class="text-lg font-medium text-gray-900">
+                    {{ stock.symbol }}
+                    <span class="{% if stock.percent_change >= 0 %} text-green-600 {% else %} text-red-600 {% endif %}">
+                        ({{ stock.percent_change }}%)
+                    </span>
+                </span>
+            </div>
+
+            <!-- Current Price -->
+            <p class="text-gray-600 mb-4">Current Price: ${{ stock.current_price }}</p>
+
+            <!-- Action Buttons -->
             <div class="flex space-x-2">
+                <!-- Info Button -->
                 <a href="{{ url_for('stock.stock_details', stock_id=stock.id) }}" 
                    class="bg-gray-500 text-white px-3 py-1 rounded-lg hover:bg-gray-600 transition">
-                    Info
+                    Details
                 </a>
+                <!-- Remove Button with Trash Icon -->
                 <form action="{{ url_for('stock.delete_stock', stock_id=stock.id) }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition">
-                        Remove
+                        <i class="fa fa-trash-o"></i>
+                    Remove
                     </button>
                 </form>
             </div>
