@@ -47,8 +47,8 @@ def signup():
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     # If the user is already logged in, redirect to the homepage
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard.homepage'))
+    # if current_user.is_authenticated:
+    #     return redirect(url_for('dashboard.homepage'))
     
     form = LoginForm(request.form)
 

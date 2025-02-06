@@ -68,10 +68,6 @@ class Stock(database.Model):
     symbol: Mapped[str] = mapped_column(unique=True, nullable=False) # Stock symbol
     current_price: Mapped[float] = mapped_column(nullable=False) # Current price of the stock
     percent_change: Mapped[float] = mapped_column(nullable=False) # Percent change in price
-    # change: Mapped[float] = mapped_column(nullable=False) # Change in price
-    # high_price_day: Mapped[float] = mapped_column(nullable=False) # High price of the day
-    # low_price_day: Mapped[float] = mapped_column(nullable=False) # Low price of the day
-    # open_price_day: Mapped[float] = mapped_column(nullable=False) # Open price of the day
-    # previous_day_price: Mapped[float] = mapped_column(nullable=False) # Previous day price of the stock
+    last_updated_at: Mapped[datetime] = mapped_column(nullable=False) # Date of last update of the stock price
 
     watchlists = relationship('Watchlist', secondary=watchlist_stock_association, back_populates='stocks')

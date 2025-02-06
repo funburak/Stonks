@@ -31,6 +31,12 @@
             <canvas id="changeChart"></canvas>
         </div>
 
+        <!-- Trading Volume Chart -->
+        <div class="mt-6">
+            <h3 class="text-lg font-semibold text-gray-900">Trading Volume</h3>
+            <canvas id="volumeChart"></canvas>
+        </div>
+
         <!-- Action Buttons -->
         <div class="flex justify-end mt-6 space-x-3">
             <a href="{{ url_for('stock.watchlist_page') }}" 
@@ -118,6 +124,29 @@
             }
         }
     });
+
+    // Trading Volume Chart
+    const volumeData = stockData.trading_volumes;
+
+    new Chart(document.getElementById('volumeChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+        labels: stockData.daily_dates,  // X-axis: Dates
+        datasets: [{
+            label: 'Trading Volume',
+            data: volumeData,  // Y-axis: Volume
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+
 
 </script>
 

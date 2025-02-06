@@ -21,7 +21,8 @@ dependencies = [
     "flask-caching (>=2.3.0,<3.0.0)",
     "flask-login (>=0.6.3,<0.7.0)",
     "yfinance (>=0.2.52,<0.3.0)",
-    "yahooquery (>=2.3.7,<3.0.0)"
+    "yahooquery (>=2.3.7,<3.0.0)",
+    "flask-apscheduler (>=1.13.1,<2.0.0)"
 ]
 
 

@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from stonks.user.models import Stock, Watchlist, database
-from stonks.helper.extensions import cache
+from stonks.helper.extensions import cache, scheduler
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 import yfinance as yf
@@ -29,7 +29,7 @@ def get_stock_news(symbol):
         filtered_news.append({
             "title": article['title'],
             "link": article['link'],
-            "publishTime": datetime.fromtimestamp(article['providerPublishTime']).strftime("%d %B %Y %H:%M UTC"),
+            "publishTime": datetime.fromtimestamp(article['providerPublishTime']).strftime("%d %B %Y %H:%M"),
             "thumbnail": article['thumbnail']['resolutions'][0]['url'] if 'thumbnail' in article else None
         })
 
@@ -78,8 +78,9 @@ def add_stock():
             current_price = ticker.info['currentPrice']
             historical_data = ticker.history(period="3d", interval="1d")
             latest_percent_change = round(historical_data['Close'].pct_change().iloc[-1] * 100,2)
+            last_updated_at = datetime.now()
 
-            stock = Stock(symbol=symbol, current_price=current_price, percent_change=latest_percent_change)
+            stock = Stock(symbol=symbol, current_price=current_price, percent_change=latest_percent_change, last_updated_at=last_updated_at)
             database.session.add(stock)
             database.session.commit()
 
@@ -106,8 +107,74 @@ def watchlist_page():
 
     user_watchlist = current_user.watchlist
 
+    # if user_watchlist.stocks:
+    #     if update_stock_prices(user_watchlist.stocks):
+    #         flash(f"Stock prices updated successfully", 'success')
+    #     else:
+    #         flash(f"An error occurred while updating stock prices", 'danger')
+
     return render_template('stock/watchlist.html', watchlist=user_watchlist)
-    
+
+def update_stock_prices_daily(app):
+    """"Update the stock prices every day and delete the stock that arent in any watchlist"""
+    print("Updating stock prices")
+
+    with app.app_context():
+        # Delete the stocks that arent in any watchlist
+        stocks = Stock.query.filter(~Stock.watchlists.any()).all()
+        for stock in stocks:
+            database.session.delete(stock)
+            database.session.commit()
+
+        # Update the stock prices
+        stocks = Stock.query.all()
+
+        for stock in stocks:
+            update_stock(stock)
+            database.session.commit()
+
+def update_stock(stock: Stock):
+    """
+    Fetch the latest stock price for a given stock
+    """
+    ticker = yf.Ticker(stock.symbol)
+    stock.current_price = ticker.info['currentPrice']
+    historical_data = ticker.history(period="3d", interval="1d")
+    latest_percent_change = round(historical_data['Close'].pct_change().iloc[-1] * 100,2)
+    stock.percent_change = latest_percent_change
+    stock.last_updated_at = datetime.now()
+    print(f"Updated {stock.symbol}")
+
+def update_stock_prices(stocks):
+    """"
+    Update the prices of the stocks in the user's watchlist if a day has passed since the last update
+
+    Args:
+        stocks (list): A list of Stock objects
+
+    Returns:
+        bool: True if the prices were updated successfully, False otherwise
+    """
+    try:
+        for stock in stocks:
+            ticker = yf.Ticker(stock.symbol)
+            today = datetime.now()
+            last_update_time = stock.last_updated_at
+            if today - last_update_time > timedelta(days=1):
+                print(f"Updating {stock.symbol}")
+                stock.current_price = ticker.info['currentPrice']
+                historical_data = ticker.history(period="3d", interval="1d")
+                latest_percent_change = round(historical_data['Close'].pct_change().iloc[-1] * 100,2)
+                stock.percent_change = latest_percent_change
+                stock.last_updated_at = today
+                database.session.commit()
+            else:
+                print(f"Skipping update for {stock.symbol}")
+        return True
+    except Exception as e:
+        print("Error:", e)
+        return False
+
 @stock.route('/delete_stock/<int:stock_id>', methods=['POST'])
 @login_required
 def delete_stock(stock_id):
@@ -168,7 +235,6 @@ def get_stock_details(symbol):
         today = datetime.now()
         seven_days_ago = today - timedelta(days=7)
 
-        # Fetch data at 4-hour intervals for the past week
         historical_data = ticker.history(period="7d", interval="1h")
 
         if historical_data.empty:
@@ -176,19 +242,17 @@ def get_stock_details(symbol):
 
         company_name = ticker.info.get('longName', symbol)
 
-        # Extract dates and prices for 4-hour intervals
         dates = historical_data.index.strftime("%d %B %Y %H:%M").tolist()
         closing_prices = historical_data['Close'].tolist()
 
-        # Resample to daily data and exclude weekends
-        daily_data = historical_data.resample('1D').last()  # Get end-of-day data
-        daily_data = daily_data[daily_data.index.dayofweek < 5]  # Exclude weekends (Monday=0, Sunday=6)
+        daily_data = historical_data.resample('1D').last()
+        daily_data = daily_data[daily_data.index.dayofweek < 5]
 
-        # Calculate daily percent changes (skip the first value)
         percent_changes = daily_data['Close'].pct_change().fillna(0).multiply(100).tolist()[1:]
-        daily_dates = daily_data.index.strftime("%d %B").tolist()[1:]  # Exclude the first date
+        daily_dates = daily_data.index.strftime("%d %B").tolist()[1:]
 
-        # Prepare stock data
+        volume = historical_data['Volume'].tolist()
+
         stock_data = {
             "symbol": symbol,
             "company_name": company_name,
@@ -199,7 +263,8 @@ def get_stock_details(symbol):
             "dates": dates,
             "closing_prices": closing_prices,
             "percent_changes": percent_changes,
-            "daily_dates": daily_dates,  # Add daily dates for percent changes
+            "daily_dates": daily_dates,
+            "trading_volumes": volume
         }
 
         return json.dumps(stock_data)
