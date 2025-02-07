@@ -18,9 +18,6 @@ class Config:
     MAIL_USE_SSL = True
     MAIL_DEFAULT_SENDER = "stonks@example.com"
 
-    # FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY')
-    # ALPHA_VANTAGE_API_KEY = os.getenv('ALPHA_VANTAGE_API_KEY')
-
     CACHE_TYPE = 'simple'
     CACHE_DEFAULT_TIMEOUT = 600 # 10 minutes
 

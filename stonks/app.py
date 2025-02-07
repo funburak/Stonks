@@ -2,11 +2,11 @@ from flask import Flask
 from stonks.helper.config import config
 from stonks.helper.mail import MailHandler
 from flask_wtf.csrf import CSRFProtect
-from stonks.user.models import Stock,database
+from stonks.user.models import database
 from stonks.helper.extensions import cache, login_manager, scheduler
-import yfinance as yf
-from datetime import datetime
-from stonks.stocks.stock import update_stock_prices_daily
+from stonks.stocks.stock import update_stock_prices_daily, generate_daily_report
+from apscheduler.triggers.cron import CronTrigger
+from flask_migrate import Migrate
 
 def create_app():
     app = Flask(__name__, template_folder='../templates')
@@ -29,8 +29,9 @@ def start_database(app: Flask):
     database.init_app(app)
 
     with app.app_context():
-        # database.drop_all()
         database.create_all()
+    
+    migrate = Migrate(app, database)
 
 def register_config(app: Flask):
     """
@@ -43,7 +44,7 @@ def register_config(app: Flask):
 
 def register_extensions(app: Flask):
     """
-    Register cache and login manager extensions
+    Register cache, login manager and scheduler extensions
 
     Args:
         app (Flask): The Flask app
@@ -52,7 +53,13 @@ def register_extensions(app: Flask):
     login_manager.init_app(app) # Initialize the login manager
 
     with app.app_context():
-        scheduler.add_job(update_stock_prices_daily, 'interval', days=1, args=[app])
+        scheduler.add_job(func=update_stock_prices_daily,
+                          trigger=CronTrigger(hour=10, minute=0),
+                          args=[app]) # Update stock prices daily at 10:00 AM
+        scheduler.add_job(func=generate_daily_report,
+                          trigger=CronTrigger(hour=10, minute=5),
+                          args=[app]) # Generate daily report at 10:05 AM
+        
         scheduler.start()
 
 def register_mail(app: Flask):

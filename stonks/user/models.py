@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from werkzeug.security import generate_password_hash, check_password_hash
+import bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime, timedelta
@@ -19,16 +19,16 @@ class User(UserMixin, database.Model):
     __tablename__ = 'user'
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(unique=True, nullable=False)
-    email: Mapped[str] = mapped_column(unique=True, nullable=False)
-    password:  Mapped[str] = mapped_column(nullable=False)
+    username: Mapped[str] = mapped_column(database.String(100), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(database.String(120), unique=True, nullable=False)
+    password:  Mapped[str] = mapped_column(database.String(256), nullable=False)
     watchlist = relationship('Watchlist', uselist=False, back_populates='user', cascade='all, delete-orphan')
 
     def set_password(self, password):
-        self.password = generate_password_hash(password)
+        self.password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     def check_password(self, password):
-        return check_password_hash(self.password, password)
+        return bcrypt.checkpw(password.encode('utf-8'), self.password.encode('utf-8'))
     
     def generate_reset_token(self,app=None, expire_time=600):
         if app is None:

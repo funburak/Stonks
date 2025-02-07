@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from stonks.user.models import Stock, Watchlist, database
-from stonks.helper.extensions import cache, scheduler
+from stonks.helper.extensions import cache
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 import yfinance as yf
@@ -75,9 +75,9 @@ def add_stock():
 
         if not stock: # If the stock is not in the database, add it
             ticker = yf.Ticker(symbol)
-            current_price = ticker.info['currentPrice']
+            current_price = float(ticker.info.get('currentPrice', None))
             historical_data = ticker.history(period="3d", interval="1d")
-            latest_percent_change = round(historical_data['Close'].pct_change().iloc[-1] * 100,2)
+            latest_percent_change = float(round(historical_data['Close'].pct_change().iloc[-1] * 100,2))
             last_updated_at = datetime.now()
 
             stock = Stock(symbol=symbol, current_price=current_price, percent_change=latest_percent_change, last_updated_at=last_updated_at)
@@ -94,6 +94,7 @@ def add_stock():
             flash(f"{symbol} already in watchlist", 'warning')
 
     except Exception as e:
+        print(e)
         flash('An error occurred while adding the stock', 'danger')
 
     return redirect(url_for('stock.watchlist_page'))
@@ -107,22 +108,15 @@ def watchlist_page():
 
     user_watchlist = current_user.watchlist
 
-    # if user_watchlist.stocks:
-    #     if update_stock_prices(user_watchlist.stocks):
-    #         flash(f"Stock prices updated successfully", 'success')
-    #     else:
-    #         flash(f"An error occurred while updating stock prices", 'danger')
-
     return render_template('stock/watchlist.html', watchlist=user_watchlist)
 
 def update_stock_prices_daily(app):
-    """"Update the stock prices every day and delete the stock that arent in any watchlist"""
-    print("Updating stock prices")
-
+    """Update the stock prices every day and delete the stock that arent in any watchlist"""
     with app.app_context():
         # Delete the stocks that arent in any watchlist
         stocks = Stock.query.filter(~Stock.watchlists.any()).all()
         for stock in stocks:
+            print(f"Deleting {stock.symbol}")
             database.session.delete(stock)
             database.session.commit()
 
@@ -135,45 +129,26 @@ def update_stock_prices_daily(app):
 
 def update_stock(stock: Stock):
     """
-    Fetch the latest stock price for a given stock
+    Fetch the latest stock price for a given stock and send a notification if the price has changed by more than 5%
     """
+    last_updated_at = stock.last_updated_at
+    if last_updated_at and (last_updated_at.date() == datetime.now().date()): # If the stock was updated today, no need to update
+        return
+    last_price = stock.current_price
     ticker = yf.Ticker(stock.symbol)
-    stock.current_price = ticker.info['currentPrice']
+    stock.current_price = float(ticker.info.get('currentPrice', None))
+    if last_price and ((last_price / stock.current_price > 1.05) or (last_price / stock.current_price < 0.95)):
+        print(f"%5 price change in {stock.symbol}")
+        mail_handler = current_app.extensions['mail_handler']
+        if mail_handler.send_change_mail([current_user.email], stock.symbol):
+            print(f"Sent email to {current_user.email}")
+        else:
+            print(f"Failed to send email to {current_user.email}")
     historical_data = ticker.history(period="3d", interval="1d")
-    latest_percent_change = round(historical_data['Close'].pct_change().iloc[-1] * 100,2)
+    latest_percent_change = float(round(historical_data['Close'].pct_change().iloc[-1] * 100,2))
     stock.percent_change = latest_percent_change
     stock.last_updated_at = datetime.now()
     print(f"Updated {stock.symbol}")
-
-def update_stock_prices(stocks):
-    """"
-    Update the prices of the stocks in the user's watchlist if a day has passed since the last update
-
-    Args:
-        stocks (list): A list of Stock objects
-
-    Returns:
-        bool: True if the prices were updated successfully, False otherwise
-    """
-    try:
-        for stock in stocks:
-            ticker = yf.Ticker(stock.symbol)
-            today = datetime.now()
-            last_update_time = stock.last_updated_at
-            if today - last_update_time > timedelta(days=1):
-                print(f"Updating {stock.symbol}")
-                stock.current_price = ticker.info['currentPrice']
-                historical_data = ticker.history(period="3d", interval="1d")
-                latest_percent_change = round(historical_data['Close'].pct_change().iloc[-1] * 100,2)
-                stock.percent_change = latest_percent_change
-                stock.last_updated_at = today
-                database.session.commit()
-            else:
-                print(f"Skipping update for {stock.symbol}")
-        return True
-    except Exception as e:
-        print("Error:", e)
-        return False
 
 @stock.route('/delete_stock/<int:stock_id>', methods=['POST'])
 @login_required
@@ -248,7 +223,7 @@ def get_stock_details(symbol):
         daily_data = historical_data.resample('1D').last()
         daily_data = daily_data[daily_data.index.dayofweek < 5]
 
-        percent_changes = daily_data['Close'].pct_change().fillna(0).multiply(100).tolist()[1:]
+        percent_changes = daily_data['Close'].dropna().pct_change(fill_method=None).fillna(0).multiply(100).tolist()[1:]
         daily_dates = daily_data.index.strftime("%d %B").tolist()[1:]
 
         volume = historical_data['Volume'].tolist()
@@ -271,3 +246,28 @@ def get_stock_details(symbol):
     except Exception as e:
         print("Error:", e)
         return None
+    
+def generate_daily_report(app):
+    """"Generate a daily report for the stocks at the watchlist"""
+    with app.app_context():
+
+        # Get all the watchlists
+        watchlists = Watchlist.query.all()
+
+        mail_handler = current_app.extensions['mail_handler']
+
+        for watchlist in watchlists:
+            report = 'Daily Report of Your Watchlist\n\n'
+            for stock in watchlist.stocks:
+                stock_symbol = stock.symbol
+                stock_price = stock.current_price
+                stock_percent_change = stock.percent_change
+
+                report += f"Stock: {stock_symbol}\n"
+                report += f"Price: ${stock_price}\n"
+                report += f"Percent Change: {stock_percent_change}%\n\n"
+
+            if mail_handler.send_watchlist_report([watchlist.user.email], report):
+                print(f"Report sent to {watchlist.user.username}")
+            else:
+                print(f"Failed to send report to {watchlist.user.username}")

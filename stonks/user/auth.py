@@ -9,8 +9,9 @@ auth = Blueprint('auth', __name__)
 @auth.route('/signup', methods=['GET', 'POST'])
 def signup():
     # # If the user is already logged in, redirect to the homepage
-    # if current_user.is_authenticated:
-    #     redirect(url_for('dashboard.homepage'))
+    if current_user.is_authenticated:
+        flash('Logout to sign up', 'info')
+        return redirect(url_for('dashboard.homepage'))
 
     form = SignupForm(request.form)
     if request.method == 'POST' and form.validate_on_submit():
@@ -47,8 +48,8 @@ def signup():
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     # If the user is already logged in, redirect to the homepage
-    # if current_user.is_authenticated:
-    #     return redirect(url_for('dashboard.homepage'))
+    if current_user.is_authenticated and not session.get('autofill_username'):
+        return redirect(url_for('dashboard.homepage'))
     
     form = LoginForm(request.form)
 
@@ -118,7 +119,7 @@ def reset_password(token):
     else:
         return render_template('auth/reset_password.html', form=form, token=token)
     
-@auth.route('/logout')
+@auth.route('/logout', methods=['POST'])
 @login_required
 def logout():
     logout_user()
