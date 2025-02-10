@@ -25,28 +25,4 @@ class Config:
 
     PERMANENT_SESSION_LIFETIME = timedelta(minutes=10)
 
-    SWAGGER = {
-        "swagger": "2.0",
-        "info": {
-            "title": "Stonks API",
-            "description": "API Documentation",
-            "version": "1.0.0"
-        },
-        "headers":[],
-        "specs": [
-            {
-                "endpoint": 'apispec_1',
-                "route": '/apispec_1.json',
-                "rule_filter": lambda rule: True,  # all in
-                "model_filter": lambda tag: True,  # all in
-            }
-        ],
-        'ui_params': {
-            'supportedSubmitMethods': [],
-        },
-        "static_url_path": "/flasgger_static",
-        "swagger_ui": True,
-        "specs_route": "/apidocs/"
-    }
-
 config = Config()
