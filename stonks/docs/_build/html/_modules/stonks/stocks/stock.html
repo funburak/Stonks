@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>stonks.stocks.stock &#8212; Stonks 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for stonks.stocks.stock</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="n">Blueprint</span><span class="p">,</span> <span class="n">render_template</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">redirect</span><span class="p">,</span> <span class="n">url_for</span><span class="p">,</span> <span class="n">flash</span><span class="p">,</span> <span class="n">current_app</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">stonks.user.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stock</span><span class="p">,</span> <span class="n">Watchlist</span><span class="p">,</span> <span class="n">database</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">stonks.helper.extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">cache</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask_login</span><span class="w"> </span><span class="kn">import</span> <span class="n">login_required</span><span class="p">,</span> <span class="n">current_user</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yfinance</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">yf</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yahooquery</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">yq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+
+<span class="n">stock</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s1">&#39;stock&#39;</span><span class="p">,</span> <span class="vm">__name__</span><span class="p">)</span>
+
+<div class="viewcode-block" id="get_stock_news">
+<a class="viewcode-back" href="../../../source/dashboard.html#stonks.stocks.stock.get_stock_news">[docs]</a>
+<span class="nd">@cache</span><span class="o">.</span><span class="n">memoize</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">600</span><span class="p">)</span> <span class="c1"># Cache for 10 minutes</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_stock_news</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the latest 3 news for a stock at the watchlist using Yahoo! Finance API</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        symbol (str): The stock symbol</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: A list of news</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">news</span> <span class="o">=</span> <span class="n">yf</span><span class="o">.</span><span class="n">Search</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">news_count</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">news</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Requesting news for </span><span class="si">{</span><span class="n">symbol</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Filter the response</span>
+    <span class="n">filtered_news</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">article</span> <span class="ow">in</span> <span class="n">news</span><span class="p">:</span>
+        <span class="n">filtered_news</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="n">article</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">],</span>
+            <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="n">article</span><span class="p">[</span><span class="s1">&#39;link&#39;</span><span class="p">],</span>
+            <span class="s2">&quot;publishTime&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">article</span><span class="p">[</span><span class="s1">&#39;providerPublishTime&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> %B %Y %H:%M&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;thumbnail&quot;</span><span class="p">:</span> <span class="n">article</span><span class="p">[</span><span class="s1">&#39;thumbnail&#39;</span><span class="p">][</span><span class="s1">&#39;resolutions&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;url&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;thumbnail&#39;</span> <span class="ow">in</span> <span class="n">article</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">})</span>
+
+    <span class="k">return</span> <span class="n">filtered_news</span></div>
+
+
+<span class="nd">@stock</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/search_stock&#39;</span><span class="p">)</span>
+<span class="nd">@login_required</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">search_stock</span><span class="p">():</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">query</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">&#39;stock/watchlist.html&#39;</span><span class="p">,</span> <span class="n">watchlist</span><span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span><span class="p">,</span> <span class="n">search_results</span><span class="o">=</span><span class="p">[])</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">search_results</span> <span class="o">=</span> <span class="n">yq</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">search_results</span> <span class="ow">or</span> <span class="s2">&quot;quotes&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">search_results</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">&#39;stock/watchlist.html&#39;</span><span class="p">,</span> <span class="n">watchlist</span><span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span><span class="p">,</span> <span class="n">search_results</span><span class="o">=</span><span class="p">[])</span>
+        
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">stock</span> <span class="ow">in</span> <span class="n">search_results</span><span class="p">[</span><span class="s2">&quot;quotes&quot;</span><span class="p">]:</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="n">stock</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;symbol&quot;</span><span class="p">),</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">stock</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;shortname&quot;</span><span class="p">,</span> <span class="n">stock</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;longname&quot;</span><span class="p">,</span> <span class="s2">&quot;Unknown Company&quot;</span><span class="p">))</span>
+            <span class="p">})</span>
+        
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">&#39;stock/watchlist.html&#39;</span><span class="p">,</span> <span class="n">watchlist</span><span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span><span class="p">,</span> <span class="n">search_results</span><span class="o">=</span><span class="n">results</span><span class="p">)</span>
+    
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">flash</span><span class="p">(</span><span class="s1">&#39;An error occurred while searching for the stock&#39;</span><span class="p">,</span> <span class="s1">&#39;danger&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">&#39;stock/watchlist.html&#39;</span><span class="p">,</span> <span class="n">watchlist</span><span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span><span class="p">,</span> <span class="n">search_results</span><span class="o">=</span><span class="p">[])</span>
+
+<span class="nd">@stock</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/add_stock&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="nd">@login_required</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_stock</span><span class="p">():</span>
+    <span class="n">symbol</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">symbol</span><span class="p">:</span>
+        <span class="n">flash</span><span class="p">(</span><span class="s1">&#39;Invalid stock symbol&#39;</span><span class="p">,</span> <span class="s1">&#39;danger&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s1">&#39;stock.watchlist_page&#39;</span><span class="p">))</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">stock</span> <span class="o">=</span> <span class="n">Stock</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">stock</span><span class="p">:</span> <span class="c1"># If the stock is not in the database, add it</span>
+            <span class="n">ticker</span> <span class="o">=</span> <span class="n">yf</span><span class="o">.</span><span class="n">Ticker</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+            <span class="n">current_price</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ticker</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;currentPrice&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+            <span class="n">historical_data</span> <span class="o">=</span> <span class="n">ticker</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">period</span><span class="o">=</span><span class="s2">&quot;3d&quot;</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="s2">&quot;1d&quot;</span><span class="p">)</span>
+            <span class="n">latest_percent_change</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">historical_data</span><span class="p">[</span><span class="s1">&#39;Close&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pct_change</span><span class="p">()</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+            <span class="n">last_updated_at</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+
+            <span class="n">stock</span> <span class="o">=</span> <span class="n">Stock</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span> <span class="n">current_price</span><span class="o">=</span><span class="n">current_price</span><span class="p">,</span> <span class="n">percent_change</span><span class="o">=</span><span class="n">latest_percent_change</span><span class="p">,</span> <span class="n">last_updated_at</span><span class="o">=</span><span class="n">last_updated_at</span><span class="p">)</span>
+            <span class="n">database</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">stock</span><span class="p">)</span>
+            <span class="n">database</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">stock</span> <span class="ow">and</span> <span class="n">stock</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span><span class="o">.</span><span class="n">stocks</span><span class="p">:</span>
+            <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span><span class="o">.</span><span class="n">stocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stock</span><span class="p">)</span>
+            <span class="n">database</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="n">cache</span><span class="o">.</span><span class="n">delete_memoized</span><span class="p">(</span><span class="n">get_stock_news</span><span class="p">,</span> <span class="n">symbol</span><span class="p">)</span>
+            <span class="n">flash</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">symbol</span><span class="si">}</span><span class="s2"> added to watchlist&quot;</span><span class="p">,</span> <span class="s1">&#39;success&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s1">&#39;stock.watchlist_page&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">flash</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">symbol</span><span class="si">}</span><span class="s2"> already in watchlist&quot;</span><span class="p">,</span> <span class="s1">&#39;warning&#39;</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="n">flash</span><span class="p">(</span><span class="s1">&#39;An error occurred while adding the stock&#39;</span><span class="p">,</span> <span class="s1">&#39;danger&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s1">&#39;stock.watchlist_page&#39;</span><span class="p">))</span>
+
+<span class="nd">@stock</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/watchlist&#39;</span><span class="p">)</span>
+<span class="nd">@login_required</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">watchlist_page</span><span class="p">():</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span><span class="p">:</span>
+        <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span> <span class="o">=</span> <span class="n">Watchlist</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="n">current_user</span><span class="p">)</span>
+        <span class="n">database</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="n">user_watchlist</span> <span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span>
+
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">&#39;stock/watchlist.html&#39;</span><span class="p">,</span> <span class="n">watchlist</span><span class="o">=</span><span class="n">user_watchlist</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">update_stock_prices_daily</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Update the stock prices every day and delete the stock that arent in any watchlist&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">app</span><span class="o">.</span><span class="n">app_context</span><span class="p">():</span>
+        <span class="c1"># Delete the stocks that arent in any watchlist</span>
+        <span class="n">stocks</span> <span class="o">=</span> <span class="n">Stock</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="o">~</span><span class="n">Stock</span><span class="o">.</span><span class="n">watchlists</span><span class="o">.</span><span class="n">any</span><span class="p">())</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">stock</span> <span class="ow">in</span> <span class="n">stocks</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleting </span><span class="si">{</span><span class="n">stock</span><span class="o">.</span><span class="n">symbol</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">database</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">stock</span><span class="p">)</span>
+            <span class="n">database</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="c1"># Update the stock prices</span>
+        <span class="n">stocks</span> <span class="o">=</span> <span class="n">Stock</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">stock</span> <span class="ow">in</span> <span class="n">stocks</span><span class="p">:</span>
+            <span class="n">update_stock</span><span class="p">(</span><span class="n">stock</span><span class="p">)</span>
+            <span class="n">database</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">update_stock</span><span class="p">(</span><span class="n">stock</span><span class="p">:</span> <span class="n">Stock</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fetch the latest stock price for a given stock and send a notification if the price has changed by more than 5%</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">last_updated_at</span> <span class="o">=</span> <span class="n">stock</span><span class="o">.</span><span class="n">last_updated_at</span>
+    <span class="k">if</span> <span class="n">last_updated_at</span> <span class="ow">and</span> <span class="p">(</span><span class="n">last_updated_at</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="o">==</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">date</span><span class="p">()):</span> <span class="c1"># If the stock was updated today, no need to update</span>
+        <span class="k">return</span>
+    <span class="n">last_price</span> <span class="o">=</span> <span class="n">stock</span><span class="o">.</span><span class="n">current_price</span>
+    <span class="n">ticker</span> <span class="o">=</span> <span class="n">yf</span><span class="o">.</span><span class="n">Ticker</span><span class="p">(</span><span class="n">stock</span><span class="o">.</span><span class="n">symbol</span><span class="p">)</span>
+    <span class="n">stock</span><span class="o">.</span><span class="n">current_price</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ticker</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;currentPrice&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">last_price</span> <span class="ow">and</span> <span class="p">((</span><span class="n">last_price</span> <span class="o">/</span> <span class="n">stock</span><span class="o">.</span><span class="n">current_price</span> <span class="o">&gt;</span> <span class="mf">1.05</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">last_price</span> <span class="o">/</span> <span class="n">stock</span><span class="o">.</span><span class="n">current_price</span> <span class="o">&lt;</span> <span class="mf">0.95</span><span class="p">)):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;%5 price change in </span><span class="si">{</span><span class="n">stock</span><span class="o">.</span><span class="n">symbol</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">mail_handler</span> <span class="o">=</span> <span class="n">current_app</span><span class="o">.</span><span class="n">extensions</span><span class="p">[</span><span class="s1">&#39;mail_handler&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">mail_handler</span><span class="o">.</span><span class="n">send_change_mail</span><span class="p">([</span><span class="n">current_user</span><span class="o">.</span><span class="n">email</span><span class="p">],</span> <span class="n">stock</span><span class="o">.</span><span class="n">symbol</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sent email to </span><span class="si">{</span><span class="n">current_user</span><span class="o">.</span><span class="n">email</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to send email to </span><span class="si">{</span><span class="n">current_user</span><span class="o">.</span><span class="n">email</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">historical_data</span> <span class="o">=</span> <span class="n">ticker</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">period</span><span class="o">=</span><span class="s2">&quot;3d&quot;</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="s2">&quot;1d&quot;</span><span class="p">)</span>
+    <span class="n">latest_percent_change</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">historical_data</span><span class="p">[</span><span class="s1">&#39;Close&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pct_change</span><span class="p">()</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">stock</span><span class="o">.</span><span class="n">percent_change</span> <span class="o">=</span> <span class="n">latest_percent_change</span>
+    <span class="n">stock</span><span class="o">.</span><span class="n">last_updated_at</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated </span><span class="si">{</span><span class="n">stock</span><span class="o">.</span><span class="n">symbol</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="nd">@stock</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/delete_stock/&lt;int:stock_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="nd">@login_required</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">delete_stock</span><span class="p">(</span><span class="n">stock_id</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span><span class="p">:</span>
+        <span class="n">flash</span><span class="p">(</span><span class="s1">&#39;Watchlist not found&#39;</span><span class="p">,</span> <span class="s1">&#39;danger&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s1">&#39;stock.watchlist_page&#39;</span><span class="p">))</span>
+    
+    <span class="n">user_watchlist</span> <span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span>
+
+    <span class="n">stock</span> <span class="o">=</span> <span class="n">Stock</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">stock_id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">stock</span> <span class="ow">in</span> <span class="n">user_watchlist</span><span class="o">.</span><span class="n">stocks</span><span class="p">:</span>
+        <span class="n">user_watchlist</span><span class="o">.</span><span class="n">stocks</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">stock</span><span class="p">)</span>
+        <span class="n">database</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="n">cache</span><span class="o">.</span><span class="n">delete_memoized</span><span class="p">(</span><span class="n">get_stock_news</span><span class="p">,</span> <span class="n">stock</span><span class="o">.</span><span class="n">symbol</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">flash</span><span class="p">(</span><span class="s1">&#39;Stock not found&#39;</span><span class="p">,</span> <span class="s1">&#39;danger&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s1">&#39;stock.watchlist_page&#39;</span><span class="p">))</span>
+
+<span class="nd">@stock</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/stock_details/&lt;int:stock_id&gt;&#39;</span><span class="p">)</span>
+<span class="nd">@login_required</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">stock_details</span><span class="p">(</span><span class="n">stock_id</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span><span class="p">:</span>
+        <span class="n">flash</span><span class="p">(</span><span class="s1">&#39;Watchlist not found&#39;</span><span class="p">,</span> <span class="s1">&#39;danger&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s1">&#39;stock.watchlist_page&#39;</span><span class="p">))</span>
+
+    <span class="n">stock</span> <span class="o">=</span> <span class="n">Stock</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">stock_id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">stock</span> <span class="ow">and</span> <span class="n">stock</span> <span class="ow">in</span> <span class="n">current_user</span><span class="o">.</span><span class="n">watchlist</span><span class="o">.</span><span class="n">stocks</span><span class="p">:</span>
+        <span class="n">stock_symbol</span> <span class="o">=</span> <span class="n">stock</span><span class="o">.</span><span class="n">symbol</span>
+
+        <span class="n">stock_data</span> <span class="o">=</span> <span class="n">get_stock_details</span><span class="p">(</span><span class="n">stock_symbol</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">stock_data</span><span class="p">:</span>
+            <span class="n">flash</span><span class="p">(</span><span class="s1">&#39;Stock data not found&#39;</span><span class="p">,</span> <span class="s1">&#39;danger&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s1">&#39;stock.watchlist_page&#39;</span><span class="p">))</span>
+                
+        <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s1">&#39;stock/stock_details.html&#39;</span><span class="p">,</span> <span class="n">stock_data</span><span class="o">=</span><span class="n">stock_data</span><span class="p">)</span>
+    
+    <span class="n">flash</span><span class="p">(</span><span class="s1">&#39;Stock not found in your watchlist&#39;</span><span class="p">,</span> <span class="s1">&#39;danger&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="n">url_for</span><span class="p">(</span><span class="s1">&#39;stock.watchlist_page&#39;</span><span class="p">))</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_stock_details</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get stock details for a given symbol using Yahoo! Finance API</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        symbol (str): The stock symbol</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: A JSON string containing stock data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ticker</span> <span class="o">=</span> <span class="n">yf</span><span class="o">.</span><span class="n">Ticker</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+
+        <span class="n">today</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">seven_days_ago</span> <span class="o">=</span> <span class="n">today</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+
+        <span class="n">historical_data</span> <span class="o">=</span> <span class="n">ticker</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">period</span><span class="o">=</span><span class="s2">&quot;7d&quot;</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="s2">&quot;1h&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">company_name</span> <span class="o">=</span> <span class="n">ticker</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;longName&#39;</span><span class="p">,</span> <span class="n">symbol</span><span class="p">)</span>
+
+        <span class="n">dates</span> <span class="o">=</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> %B %Y %H:%M&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="n">closing_prices</span> <span class="o">=</span> <span class="n">historical_data</span><span class="p">[</span><span class="s1">&#39;Close&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+        <span class="n">daily_data</span> <span class="o">=</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="s1">&#39;1D&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">last</span><span class="p">()</span>
+        <span class="n">daily_data</span> <span class="o">=</span> <span class="n">daily_data</span><span class="p">[</span><span class="n">daily_data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">dayofweek</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">]</span>
+
+        <span class="n">percent_changes</span> <span class="o">=</span> <span class="n">daily_data</span><span class="p">[</span><span class="s1">&#39;Close&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">pct_change</span><span class="p">(</span><span class="n">fill_method</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">daily_dates</span> <span class="o">=</span> <span class="n">daily_data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> %B&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="n">volume</span> <span class="o">=</span> <span class="n">historical_data</span><span class="p">[</span><span class="s1">&#39;Volume&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+        <span class="n">stock_data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="n">symbol</span><span class="p">,</span>
+            <span class="s2">&quot;company_name&quot;</span><span class="p">:</span> <span class="n">company_name</span><span class="p">,</span>
+            <span class="s2">&quot;open_price&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">historical_data</span><span class="p">[</span><span class="s1">&#39;Open&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="s1">&#39;Open&#39;</span> <span class="ow">in</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;high_price&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">historical_data</span><span class="p">[</span><span class="s1">&#39;High&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="s1">&#39;High&#39;</span> <span class="ow">in</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;low_price&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">historical_data</span><span class="p">[</span><span class="s1">&#39;Low&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="s1">&#39;Low&#39;</span> <span class="ow">in</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;close_price&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">historical_data</span><span class="p">[</span><span class="s1">&#39;Close&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="s1">&#39;Close&#39;</span> <span class="ow">in</span> <span class="n">historical_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;dates&quot;</span><span class="p">:</span> <span class="n">dates</span><span class="p">,</span>
+            <span class="s2">&quot;closing_prices&quot;</span><span class="p">:</span> <span class="n">closing_prices</span><span class="p">,</span>
+            <span class="s2">&quot;percent_changes&quot;</span><span class="p">:</span> <span class="n">percent_changes</span><span class="p">,</span>
+            <span class="s2">&quot;daily_dates&quot;</span><span class="p">:</span> <span class="n">daily_dates</span><span class="p">,</span>
+            <span class="s2">&quot;trading_volumes&quot;</span><span class="p">:</span> <span class="n">volume</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">stock_data</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error:&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_daily_report</span><span class="p">(</span><span class="n">app</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;&quot;Generate a daily report for the stocks at the watchlist&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">app</span><span class="o">.</span><span class="n">app_context</span><span class="p">():</span>
+
+        <span class="c1"># Get all the watchlists</span>
+        <span class="n">watchlists</span> <span class="o">=</span> <span class="n">Watchlist</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+        <span class="n">mail_handler</span> <span class="o">=</span> <span class="n">current_app</span><span class="o">.</span><span class="n">extensions</span><span class="p">[</span><span class="s1">&#39;mail_handler&#39;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">watchlist</span> <span class="ow">in</span> <span class="n">watchlists</span><span class="p">:</span>
+            <span class="n">report</span> <span class="o">=</span> <span class="s1">&#39;Daily Report of Your Watchlist</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+            <span class="k">for</span> <span class="n">stock</span> <span class="ow">in</span> <span class="n">watchlist</span><span class="o">.</span><span class="n">stocks</span><span class="p">:</span>
+                <span class="n">stock_symbol</span> <span class="o">=</span> <span class="n">stock</span><span class="o">.</span><span class="n">symbol</span>
+                <span class="n">stock_price</span> <span class="o">=</span> <span class="n">stock</span><span class="o">.</span><span class="n">current_price</span>
+                <span class="n">stock_percent_change</span> <span class="o">=</span> <span class="n">stock</span><span class="o">.</span><span class="n">percent_change</span>
+
+                <span class="n">report</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;Stock: </span><span class="si">{</span><span class="n">stock_symbol</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">report</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;Price: $</span><span class="si">{</span><span class="n">stock_price</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">report</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;Percent Change: </span><span class="si">{</span><span class="n">stock_percent_change</span><span class="si">}</span><span class="s2">%</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+
+            <span class="k">if</span> <span class="n">mail_handler</span><span class="o">.</span><span class="n">send_watchlist_report</span><span class="p">([</span><span class="n">watchlist</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">email</span><span class="p">],</span> <span class="n">report</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Report sent to </span><span class="si">{</span><span class="n">watchlist</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to send report to </span><span class="si">{</span><span class="n">watchlist</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Stonks</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Burak Demirkaya.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

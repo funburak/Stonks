@@ -3,7 +3,6 @@ from stonks.user.forms import SignupForm, LoginForm, ForgotPasswordForm, ChangeP
 from stonks.user.models import User, Watchlist, database
 from flask_login import login_required, login_user, logout_user, current_user
 
-
 auth = Blueprint('auth', __name__)
 
 @auth.route('/signup', methods=['GET', 'POST'])

@@ -25,7 +25,7 @@ dependencies = [
     "flask-apscheduler (>=1.13.1,<2.0.0)",
     "psycopg2-binary (>=2.9.10,<3.0.0)",
     "bcrypt (>=4.2.1,<5.0.0)",
-    "flask-migrate (>=4.1.0,<5.0.0)"
+    "flask-migrate (>=4.1.0,<5.0.0)",
 ]
 
 
