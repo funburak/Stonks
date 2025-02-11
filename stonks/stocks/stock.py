@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import yfinance as yf
 import yahooquery as yq
 import json
+from collections import defaultdict
 
 stock = Blueprint('stock', __name__)
 
@@ -111,7 +112,10 @@ def watchlist_page():
     return render_template('stock/watchlist.html', watchlist=user_watchlist)
 
 def update_stock_prices_daily(app):
-    """Update the stock prices every day and delete the stock that arent in any watchlist"""
+    """
+    Update the stock prices every day and delete the stock that arent in any watchlist
+    """
+    stock_changes = defaultdict(list)
     with app.app_context():
         # Delete the stocks that arent in any watchlist
         stocks = Stock.query.filter(~Stock.watchlists.any()).all()
@@ -124,12 +128,15 @@ def update_stock_prices_daily(app):
         stocks = Stock.query.all()
 
         for stock in stocks:
-            update_stock(stock)
+            update_stock(stock, stock_changes)
             database.session.commit()
+        
+        if stock_changes:
+            send_notification_mail(stock_changes)
 
-def update_stock(stock: Stock):
+def update_stock(stock: Stock, stock_changes):
     """
-    Fetch the latest stock price for a given stock and send a notification if the price has changed by more than 5%
+    Fetch the latest stock price for a given stock
     """
     last_updated_at = stock.last_updated_at
     if last_updated_at and (last_updated_at.date() == datetime.now().date()): # If the stock was updated today, no need to update
@@ -137,18 +144,26 @@ def update_stock(stock: Stock):
     last_price = stock.current_price
     ticker = yf.Ticker(stock.symbol)
     stock.current_price = float(ticker.info.get('currentPrice', None))
-    if last_price and ((last_price / stock.current_price > 1.05) or (last_price / stock.current_price < 0.95)):
-        print(f"%5 price change in {stock.symbol}")
-        mail_handler = current_app.extensions['mail_handler']
-        if mail_handler.send_change_mail([current_user.email], stock.symbol):
-            print(f"Sent email to {current_user.email}")
-        else:
-            print(f"Failed to send email to {current_user.email}")
+    if last_price and ((last_price / stock.current_price >= 1.01) or (last_price / stock.current_price <= 0.99)):
+        print(f"%1 price change in {stock.symbol}")
+        users = [watchlist.user for watchlist in stock.watchlists]
+        for user in users:
+            stock_changes[user.email].append(stock.symbol)
     historical_data = ticker.history(period="3d", interval="1d")
     latest_percent_change = float(round(historical_data['Close'].pct_change().iloc[-1] * 100,2))
     stock.percent_change = latest_percent_change
     stock.last_updated_at = datetime.now()
     print(f"Updated {stock.symbol}")
+
+def send_notification_mail(stock_changes):
+    """
+    Sends a notification mail to the users with the stock changes
+    """
+    mail_handler = current_app.extensions['mail_handler']
+    if mail_handler.send_change_mail(stock_changes):
+        print("Sent email")
+    else:
+        print("Failed to send email")
 
 @stock.route('/delete_stock/<int:stock_id>', methods=['POST'])
 @login_required

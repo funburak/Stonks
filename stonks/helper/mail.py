@@ -27,13 +27,16 @@ class MailHandler:
             print('Failed to send email')
             return False
         
-    def send_change_mail(self, receipent, stock_symbol):
-        msg = Message('Stock Price Change', recipients=receipent)
-        url = url_for('stock.watchlist', _external=True)
-        msg.body = f"The stock price at your watchlist for {stock_symbol} has changed more than 5%\n Check it out at {url}"
-        try:
-            self.mail.send(msg)
-            return True
-        except:
-            print('Failed to send email')
-            return False
+    def send_change_mail(self, stock_symbols):
+        for mail, stocks in stock_symbols.items():
+            stock_list = ', '.join(stocks)
+            subject = 'Stock Price Change'
+            body = f"The following stocks have changed by more than %1: {stock_list}"
+            msg = Message(subject, recipients=[mail])
+            msg.body = body
+            try:
+                self.mail.send(msg)
+            except:
+                print('Failed to send email')
+                return False
+        return True
