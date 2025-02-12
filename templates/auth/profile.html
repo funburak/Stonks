@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg">
+    <h2 class="text-2xl font-semibold text-center mb-4">User Profile</h2>
+
+    <!-- Home Button -->
+    <a href="{{ url_for('dashboard.homepage') }}" class="absolute top-0 left-0 p-2">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" 
+             class="w-8 h-8 text-gray-700 hover:text-gray-900 transition">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75L12 3l9 6.75M4.5 10.5v10.5h15V10.5" />
+        </svg>
+    </a>
+
+    <!-- Profile Picture Section -->
+    <div class="relative flex flex-col items-center mb-6">
+        <img src="{{ user.profile_picture or url_for('static', filename='default_profile.png') }}" 
+             alt="Profile Picture" class="w-32 h-32 rounded-full shadow-md">
+        
+        <!-- Edit Icon (Opens File Input) -->
+        <label for="profile_picture_upload" class="absolute bottom-2 right-2 bg-gray-800 text-white p-2 rounded-full cursor-pointer hover:bg-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M5 13l4 4L19 7M13 7h6m-3-3v6" />
+            </svg>
+        </label>
+
+        <!-- Hidden File Input -->
+        <form id="profilePictureForm" method="POST" action="{{ url_for('auth.upload_profile_picture') }}" enctype="multipart/form-data" class="hidden">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="file" name="profile_picture" id="profile_picture_upload" accept="image/*" class="hidden" onchange="document.getElementById('profilePictureForm').submit();">
+        </form>
+    </div>
+
+    <!-- Update Username Form -->
+    <form method="POST" action="{{ url_for('auth.update_user', field='username') }}" class="space-y-4">
+        {{ username_form.hidden_tag() }}
+        <label for="username" class="font-semibold">Update Username:</label>
+        <input type="text" name="username" id="username" value="{{ user.username }}" 
+               class="border rounded px-3 py-2 focus:ring focus:ring-blue-300 w-full" required>
+        <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full">
+            Update Username
+        </button>
+    </form>
+
+    <!-- Update Email Form -->
+    <form method="POST" action="{{ url_for('auth.update_user', field='email') }}" class="space-y-4 mt-4">
+        {{ email_form.hidden_tag() }}
+        <label for="email" class="font-semibold">Update Email:</label>
+        <input type="email" name="email" id="email" value="{{ user.email }}" 
+               class="border rounded px-3 py-2 focus:ring focus:ring-blue-300 w-full" required>
+        <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full">
+            Update Email
+        </button>
+    </form>
+
+    <!-- Watchlist -->
+    <h3 class="text-xl font-semibold mt-6 mb-2">Stocks in Your Watchlist</h3>
+    <ul class="divide-y divide-gray-300">
+        {% if user.watchlist and user.watchlist.stocks %}
+            {% for stock in user.watchlist.stocks %}
+            <li class="flex justify-between items-center py-3">
+                <span class="text-lg">{{ stock.symbol }}</span>
+            </li>
+            {% endfor %}
+        {% else %}
+            <p class="text-gray-500">No stocks in watchlist.</p>
+        {% endif %}
+    </ul>
+
+    <!-- Delete Account -->
+    <div class="text-center mt-6">
+        <form id="deleteAccountForm" method="POST" action="{{ url_for('auth.delete_account') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="button" id="onDeleteButton" 
+                    class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                Delete My Account
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- JavaScript for Confirm Delete -->
+<script>
+    document.getElementById("onDeleteButton").addEventListener("click", function() {
+        if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+            document.getElementById("deleteAccountForm").submit();
+        }
+    });
+</script>
+
+{% endblock %}

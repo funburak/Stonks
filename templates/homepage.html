@@ -9,6 +9,7 @@
     <nav class="mt-6">
         {% if current_user.is_authenticated %}
         <a href="{{ url_for('stock.watchlist_page') }}" class="text-blue-500 hover:underline mx-2">Watchlist</a>
+        <a href="{{ url_for('auth.profile_page') }}" class="text-blue-500 hover:underline mx-2">Profile</a>
         <form action="{{ url_for('auth.logout') }}" method="POST" style="display: inline;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="text-blue-500 hover:underline">Logout</button>

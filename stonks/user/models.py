@@ -21,6 +21,8 @@ class User(UserMixin, database.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(database.String(100), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(database.String(120), unique=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(database.DateTime, default=datetime.now) # Date of account creation
+    profile_picture: Mapped[str] = mapped_column(database.String(255), nullable=True) # URL to the profile picture
     password:  Mapped[str] = mapped_column(database.String(256), nullable=False)
     watchlist = relationship('Watchlist', uselist=False, back_populates='user', cascade='all, delete-orphan')
 
@@ -36,7 +38,7 @@ class User(UserMixin, database.Model):
         
         payload = {
             'user_id': self.id,
-            'exp': datetime.now() + timedelta(seconds=expire_time)
+            'exp': datetime.now() + timedelta(seconds=expire_time) - timedelta(hours=3)
         }
         return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
     

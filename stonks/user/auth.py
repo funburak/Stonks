@@ -1,7 +1,13 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
-from stonks.user.forms import SignupForm, LoginForm, ForgotPasswordForm, ChangePasswordForm
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify
+from stonks.user.forms import SignupForm, LoginForm, ForgotPasswordForm, ChangePasswordForm, UpdateEmailForm, UpdateUsernameForm
 from stonks.user.models import User, Watchlist, database
 from flask_login import login_required, login_user, logout_user, current_user
+from datetime import datetime
+import cloudinary
+import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
+import logging
+import os
 
 auth = Blueprint('auth', __name__)
 
@@ -30,7 +36,8 @@ def signup():
         
         user = User(
             username=username,
-            email = email
+            email = email,
+            created_at = datetime.now()
         )
 
         user.watchlist = Watchlist(user=user)
@@ -117,6 +124,90 @@ def reset_password(token):
         return redirect(url_for('auth.login'))
     else:
         return render_template('auth/reset_password.html', form=form, token=token)
+
+@auth.route('/profile')
+@login_required
+def profile_page():
+    user = User.query.filter_by(id=current_user.id).first()
+    username_form = UpdateUsernameForm()
+    email_form = UpdateEmailForm()
+    if user:
+        return render_template('auth/profile.html', user=user, username_form=username_form, email_form=email_form)
+    else:
+        flash('User not found', 'danger')
+        return redirect(url_for('auth.login'))
+
+@auth.route('/upload_profile_picture', methods=['POST'])
+@login_required
+def upload_profile_picture():
+    if 'profile_picture' not in request.files:
+        flash("No file selected!", "danger")
+        return redirect(url_for('auth.profile_page'))
+    
+    file = request.files['profile_picture']
+    if file.filename == '':
+        flash("No file selected!", "danger")
+        return redirect(url_for('auth.profile_page'))
+    
+    try:
+        cloudinary.config(
+            cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'),
+            api_key = os.getenv('CLOUDINARY_API_KEY'),
+            api_secret = os.getenv('CLOUDINARY_API_SECRET'),
+            secure=True
+        )
+        upload_result = cloudinary.uploader.upload(file, folder='profile_pictures', public_id=str(current_user.id))
+        new_image_url = upload_result['secure_url']
+
+        current_user.profile_picture = new_image_url
+        database.session.commit()
+        flash("Profile picture uploaded successfully", "success")
+    except Exception as e:
+        logging.error(e)
+        flash("Failed to upload profile picture", "danger")
+
+    return redirect(url_for('auth.profile_page'))
+
+@auth.route('/update_user/<field>', methods=['POST'])
+@login_required
+def update_user(field):
+    if field == 'username':
+        form = UpdateUsernameForm(request.form)
+    elif field == 'email':
+        form = UpdateEmailForm(request.form)
+    else:
+        return redirect(url_for('auth.profile_page'))
+    
+    if form.validate_on_submit():
+        new_value = form.data[field]
+
+        if User.query.filter(getattr(User, field) == new_value).first():
+            flash(f'{field.capitalize()} already taken', 'danger')
+            return redirect(url_for('auth.profile_page'))
+        
+        setattr(current_user, field, new_value)
+        database.session.commit()
+        flash(f'{field.capitalize()} updated successfully', 'success')
+    else:
+        flash('Invalid input', 'danger')
+        return redirect(url_for('auth.profile_page'))
+    
+    return redirect(url_for('auth.profile_page'))
+
+@auth.route('/delete_account', methods=['POST'])
+@login_required
+def delete_account():
+    user = User.query.filter_by(id=current_user.id).first()
+
+    if user:
+        logout_user()
+        database.session.delete(user)
+        database.session.commit()
+        flash('Account deleted successfully', 'success')
+        return render_template('auth/signup.html', form=SignupForm())
+    else:
+        flash('User not found', 'danger')
+        return redirect(url_for('auth.login'), 404)
     
 @auth.route('/logout', methods=['POST'])
 @login_required
