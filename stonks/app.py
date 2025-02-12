@@ -3,7 +3,7 @@ from stonks.helper.config import config
 from stonks.helper.mail import MailHandler
 from flask_wtf.csrf import CSRFProtect
 from stonks.user.models import database
-from stonks.helper.extensions import cache, login_manager, scheduler
+from stonks.helper.extensions import cache, login_manager, scheduler, log_next_run_time
 from stonks.stocks.stock import update_stock_prices_daily, generate_daily_report
 from apscheduler.triggers.cron import CronTrigger
 from flask_migrate import Migrate
@@ -17,6 +17,7 @@ def create_app():
     register_blueprints(app)
     register_extensions(app)
 
+    log_next_run_time()
     return app
 
 def start_database(app: Flask):

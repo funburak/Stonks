@@ -36,7 +36,7 @@ class User(UserMixin, database.Model):
         
         payload = {
             'user_id': self.id,
-            'exp': datetime.now() + timedelta(seconds=expire_time) - timedelta(hours=3)
+            'exp': datetime.now() + timedelta(seconds=expire_time)
         }
         return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
     

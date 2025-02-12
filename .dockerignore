@@ -1,0 +1,22 @@
+# Ignore Git-related files
+.git/
+.gitignore
+
+# Ignore Python virtual environments & caches
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore environment and secret files
+.env
+
+# Ignore Docker-related files
+docker-compose.yml
+Dockerfile
+
+# Ignore unnecessary docs & temp files
+stonks/instance
+stonks/docs/
+*.txt
