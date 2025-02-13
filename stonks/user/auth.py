@@ -217,7 +217,7 @@ def delete_account():
                 api_secret = os.getenv('CLOUDINARY_API_SECRET'),
                 secure=True
             )
-            cloudinary.uploader.destroy(str(current_user.id), folder='profile_pictures')
+            cloudinary.uploader.destroy(f'profile_pictures/{user.id}') # Delete the profile picture from Cloudinary
             logout_user()
             database.session.delete(user)
             database.session.commit()
