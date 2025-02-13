@@ -186,6 +186,8 @@ def update_user(field):
         form = UpdateUsernameForm(request.form)
     elif field == 'email':
         form = UpdateEmailForm(request.form)
+        flash('Email update not supported yet', 'danger')
+        return redirect(url_for('auth.profile_page'))
     else:
         return redirect(url_for('auth.profile_page'))
     
