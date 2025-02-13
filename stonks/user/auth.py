@@ -209,13 +209,23 @@ def update_user(field):
 @login_required
 def delete_account():
     user = User.query.filter_by(id=current_user.id).first()
-
     if user:
-        logout_user()
-        database.session.delete(user)
-        database.session.commit()
-        flash('Account deleted successfully', 'success')
-        return render_template('auth/signup.html', form=SignupForm())
+        try:
+            cloudinary.config(
+                cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME'),
+                api_key = os.getenv('CLOUDINARY_API_KEY'),
+                api_secret = os.getenv('CLOUDINARY_API_SECRET'),
+                secure=True
+            )
+            cloudinary.uploader.destroy(str(current_user.id), folder='profile_pictures')
+            logout_user()
+            database.session.delete(user)
+            database.session.commit()
+            flash('Account deleted successfully', 'success')
+            return render_template('auth/signup.html', form=SignupForm())
+        except Exception as e:
+            logging.error(e)
+            flash('Failed to delete account', 'danger')
     else:
         flash('User not found', 'danger')
         return redirect(url_for('auth.login'), 404)
