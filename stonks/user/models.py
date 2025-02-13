@@ -23,6 +23,7 @@ class User(UserMixin, database.Model):
     email: Mapped[str] = mapped_column(database.String(120), unique=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(database.DateTime, default=datetime.now) # Date of account creation
     profile_picture: Mapped[str] = mapped_column(database.String(255), nullable=True) # URL to the profile picture
+    notification_enabled: Mapped[bool] = mapped_column(database.Boolean, default=True) # Whether to send notifications to the user
     password:  Mapped[str] = mapped_column(database.String(256), nullable=False)
     watchlist = relationship('Watchlist', uselist=False, back_populates='user', cascade='all, delete-orphan')
 

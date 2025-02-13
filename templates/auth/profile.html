@@ -16,7 +16,7 @@
 
     <!-- Profile Picture Section -->
     <div class="relative flex flex-col items-center mb-6">
-        <img src="{{ user.profile_picture or url_for('static', filename='default_profile.png') }}" 
+        <img src="{{ user.profile_picture }}" 
              alt="Profile Picture" class="w-32 h-32 rounded-full shadow-md">
         
         <!-- Edit Icon (Opens File Input) -->
@@ -37,7 +37,7 @@
     <!-- Update Username Form -->
     <form method="POST" action="{{ url_for('auth.update_user', field='username') }}" class="space-y-4">
         {{ username_form.hidden_tag() }}
-        <label for="username" class="font-semibold">Update Username:</label>
+        <label for="username" class="font-semibold">Username:</label>
         <input type="text" name="username" id="username" value="{{ user.username }}" 
                class="border rounded px-3 py-2 focus:ring focus:ring-blue-300 w-full" required>
         <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full">
@@ -48,7 +48,7 @@
     <!-- Update Email Form -->
     <form method="POST" action="{{ url_for('auth.update_user', field='email') }}" class="space-y-4 mt-4">
         {{ email_form.hidden_tag() }}
-        <label for="email" class="font-semibold">Update Email:</label>
+        <label for="email" class="font-semibold">Email:</label>
         <input type="email" name="email" id="email" value="{{ user.email }}" 
                class="border rounded px-3 py-2 focus:ring focus:ring-blue-300 w-full" required>
         <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full">
@@ -56,19 +56,21 @@
         </button>
     </form>
 
-    <!-- Watchlist -->
-    <h3 class="text-xl font-semibold mt-6 mb-2">Stocks in Your Watchlist</h3>
-    <ul class="divide-y divide-gray-300">
-        {% if user.watchlist and user.watchlist.stocks %}
-            {% for stock in user.watchlist.stocks %}
-            <li class="flex justify-between items-center py-3">
-                <span class="text-lg">{{ stock.symbol }}</span>
-            </li>
-            {% endfor %}
-        {% else %}
-            <p class="text-gray-500">No stocks in watchlist.</p>
-        {% endif %}
-    </ul>
+    <!-- Notifications Toggle -->
+    <div class="mt-6 flex items-center justify-between">
+        <span class="font-semibold">Enable Daily Report Mails</span>
+        <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="notificationToggle" 
+                class="sr-only peer"
+                {% if user.notification_enabled %}checked{% endif %}>
+            <div class="w-11 h-6 bg-gray-300 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 
+                        rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full 
+                        peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 
+                        after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
+                        after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+            </div>
+        </label>
+    </div>
 
     <!-- Delete Account -->
     <div class="text-center mt-6">
@@ -82,12 +84,33 @@
     </div>
 </div>
 
-<!-- JavaScript for Confirm Delete -->
 <script>
     document.getElementById("onDeleteButton").addEventListener("click", function() {
         if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
             document.getElementById("deleteAccountForm").submit();
         }
+    });
+
+    document.getElementById("notificationToggle").addEventListener("change", function() {
+        let enabled = this.checked;
+
+        fetch("{{ url_for('auth.toggle_notifications') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token() }}"
+            },
+            body: JSON.stringify({ notification_enabled: enabled })
+        }).then(response => {
+            if (!response.ok) {
+                alert("Failed to update notification settings.");
+                this.checked = !enabled;
+            }
+        }).catch(error => {
+            console.error("Error:", error);
+            alert("An error occurred. Please try again.");
+            this.checked = !enabled;
+        });
     });
 </script>
 

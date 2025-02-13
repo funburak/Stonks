@@ -5,7 +5,6 @@ from flask_login import login_required, login_user, logout_user, current_user
 from datetime import datetime
 import cloudinary
 import cloudinary.uploader
-from cloudinary.utils import cloudinary_url
 import logging
 import os
 
@@ -167,6 +166,18 @@ def upload_profile_picture():
         flash("Failed to upload profile picture", "danger")
 
     return redirect(url_for('auth.profile_page'))
+
+@auth.route('/toggle_notifications', methods=['POST'])
+@login_required
+def toggle_notifications():
+    data = request.get_json()
+
+    if 'notification_enabled' in data:
+        current_user.notification_enabled = data['notification_enabled']
+        database.session.commit()
+        return jsonify({'success': True}), 200
+    
+    return jsonify({'error': False}), 400
 
 @auth.route('/update_user/<field>', methods=['POST'])
 @login_required

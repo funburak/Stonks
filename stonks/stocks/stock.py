@@ -148,7 +148,8 @@ def update_stock(stock: Stock, stock_changes):
         print(f"%1 price change in {stock.symbol}")
         users = [watchlist.user for watchlist in stock.watchlists]
         for user in users:
-            stock_changes[user.email].append(stock.symbol)
+            if user.notification_enabled:
+                stock_changes[user.email].append(stock.symbol)
     historical_data = ticker.history(period="3d", interval="1d")
     latest_percent_change = float(round(historical_data['Close'].pct_change().iloc[-1] * 100,2))
     stock.percent_change = latest_percent_change
@@ -272,6 +273,8 @@ def generate_daily_report(app):
         mail_handler = current_app.extensions['mail_handler']
 
         for watchlist in watchlists:
+            if watchlist.user.notification_enabled is False or not watchlist.stocks:
+                continue
             report = 'Daily Report of Your Watchlist\n\n'
             for stock in watchlist.stocks:
                 stock_symbol = stock.symbol
@@ -281,7 +284,6 @@ def generate_daily_report(app):
                 report += f"Stock: {stock_symbol}\n"
                 report += f"Price: ${stock_price}\n"
                 report += f"Percent Change: {stock_percent_change}%\n\n"
-
             if mail_handler.send_watchlist_report([watchlist.user.email], report):
                 print(f"Report sent to {watchlist.user.username}")
             else:
