@@ -45,6 +45,7 @@ def signup():
 
         database.session.add(user)
         database.session.commit()
+        logging.info(f'User {user.username} signed up successfully')
         flash("Signed up successfully", 'success')
         return redirect(url_for('auth.login'))
     
@@ -70,7 +71,7 @@ def login():
             login_user(user=user)
             session.permanent = True
             flash(f'Welcome to Stonks! {current_user.username}', 'success')
-
+            logging.info(f"User {current_user.username} logged in")
             return redirect(url_for('dashboard.homepage'))
         else:
             flash('Invalid username or password', 'danger')
@@ -90,10 +91,13 @@ def forgot_password():
             mail_handler = current_app.extensions['mail_handler']
 
             if mail_handler.send_reset_email(token, [email]):
+                logging.info(f"Reset password email sent to {email}")
                 flash('Reset password email sent', 'success')
             else:
+                logging.info(f"Failed to send reset password email to {email}")
                 flash('Failed to send email', 'danger')
         else:
+            logging.info(f"Email {email} not found")
             flash('Email not found', 'danger')
             return redirect(url_for('auth.forgot_password'))
         
@@ -118,7 +122,7 @@ def reset_password(token):
         
         user.set_password(new_password)
         database.session.commit()
-
+        logging.info(f"Password reset for user {user.username}")
         flash('Password reset successfully', 'success')
         return redirect(url_for('auth.login'))
     else:
@@ -161,8 +165,9 @@ def upload_profile_picture():
         current_user.profile_picture = new_image_url
         database.session.commit()
         flash("Profile picture uploaded successfully", "success")
+        logging.info(f"Profile picture uploaded for user {current_user.username}")
     except Exception as e:
-        logging.error(e)
+        logging.error(f"Failed to upload profile picture for user {current_user.username}: {e}")
         flash("Failed to upload profile picture", "danger")
 
     return redirect(url_for('auth.profile_page'))
@@ -201,6 +206,7 @@ def update_user(field):
         setattr(current_user, field, new_value)
         database.session.commit()
         flash(f'{field.capitalize()} updated successfully', 'success')
+        logging.info(f"{field.capitalize()} updated for user {current_user.username}")
     else:
         flash('Invalid input', 'danger')
         return redirect(url_for('auth.profile_page'))
@@ -224,17 +230,20 @@ def delete_account():
             database.session.delete(user)
             database.session.commit()
             flash('Account deleted successfully', 'success')
+            logging.info(f"{user.username} deleted account")
             return render_template('auth/signup.html', form=SignupForm())
         except Exception as e:
-            logging.error(e)
+            logging.error(f"Failed to delete account for user {user.username}: {e}")
             flash('Failed to delete account', 'danger')
     else:
+        logging.info(f"User not found")
         flash('User not found', 'danger')
         return redirect(url_for('auth.login'), 404)
     
 @auth.route('/logout', methods=['POST'])
 @login_required
 def logout():
+    logging.info(f"{current_user.username} loggedd out")
     logout_user()
     flash('Logged out successfully', 'success')
     return redirect(url_for('auth.login'))

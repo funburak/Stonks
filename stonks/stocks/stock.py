@@ -7,6 +7,7 @@ import yfinance as yf
 import yahooquery as yq
 import json
 from collections import defaultdict
+import logging
 
 stock = Blueprint('stock', __name__)
 
@@ -22,7 +23,6 @@ def get_stock_news(symbol):
         list: A list of news
     """
     news = yf.Search(symbol, news_count=3).news
-    print(f"Requesting news for {symbol}")
 
     # Filter the response
     filtered_news = []
@@ -89,13 +89,15 @@ def add_stock():
             current_user.watchlist.stocks.append(stock)
             database.session.commit()
             cache.delete_memoized(get_stock_news, symbol)
+            logging.info(f"{symbol} added to {current_user.username} watchlist")
             flash(f"{symbol} added to watchlist", 'success')
             return redirect(url_for('stock.watchlist_page'))
         else:
+            logging.info(f"{symbol} already in watchlist")
             flash(f"{symbol} already in watchlist", 'warning')
 
     except Exception as e:
-        print(e)
+        logging.error(f"An error occurred while adding the {symbol} to {current_user.username}'s watchlist: {e}")
         flash('An error occurred while adding the stock', 'danger')
 
     return redirect(url_for('stock.watchlist_page'))
@@ -120,7 +122,7 @@ def update_stock_prices_daily(app):
         # Delete the stocks that arent in any watchlist
         stocks = Stock.query.filter(~Stock.watchlists.any()).all()
         for stock in stocks:
-            print(f"Deleting {stock.symbol}")
+            logging.info(f"Deleting {stock.symbol}")
             database.session.delete(stock)
             database.session.commit()
 
@@ -145,7 +147,7 @@ def update_stock(stock: Stock, stock_changes):
     ticker = yf.Ticker(stock.symbol)
     stock.current_price = float(ticker.info.get('currentPrice', None))
     if last_price and ((last_price / stock.current_price >= 1.01) or (last_price / stock.current_price <= 0.99)):
-        print(f"%1 price change in {stock.symbol}")
+        logging.info(f"%1 price change in {stock.symbol}")
         users = [watchlist.user for watchlist in stock.watchlists]
         for user in users:
             if user.notification_enabled:
@@ -154,7 +156,7 @@ def update_stock(stock: Stock, stock_changes):
     latest_percent_change = float(round(historical_data['Close'].pct_change().iloc[-1] * 100,2))
     stock.percent_change = latest_percent_change
     stock.last_updated_at = datetime.now()
-    print(f"Updated {stock.symbol}")
+    logging.info(f"Updated {stock.symbol} price")
 
 def send_notification_mail(stock_changes):
     """
@@ -162,9 +164,9 @@ def send_notification_mail(stock_changes):
     """
     mail_handler = current_app.extensions['mail_handler']
     if mail_handler.send_change_mail(stock_changes):
-        print("Sent email")
+        logging.info("Notification mail send")
     else:
-        print("Failed to send email")
+        logging.error("Failed to send notification mail")
 
 @stock.route('/delete_stock/<int:stock_id>', methods=['POST'])
 @login_required
@@ -182,6 +184,7 @@ def delete_stock(stock_id):
         database.session.commit()
 
         cache.delete_memoized(get_stock_news, stock.symbol)
+        logging.info(f"{stock.symbol} deleted from {current_user.username} watchlist")
     else:
         flash('Stock not found', 'danger')
 
@@ -260,7 +263,7 @@ def get_stock_details(symbol):
 
         return json.dumps(stock_data)
     except Exception as e:
-        print("Error:", e)
+        logging.info(f"Error occured while fetching stock details for {symbol}")
         return None
     
 def generate_daily_report(app):
@@ -285,6 +288,6 @@ def generate_daily_report(app):
                 report += f"Price: ${stock_price}\n"
                 report += f"Percent Change: {stock_percent_change}%\n\n"
             if mail_handler.send_watchlist_report([watchlist.user.email], report):
-                print(f"Report sent to {watchlist.user.username}")
+                logging.info(f"Report sent to {watchlist.user.username}")
             else:
-                print(f"Failed to send report to {watchlist.user.username}")
+                logging.info(f"Failed to send report to {watchlist.user.username}")
