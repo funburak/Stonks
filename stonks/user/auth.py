@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify
-from stonks.user.forms import SignupForm, LoginForm, ForgotPasswordForm, ChangePasswordForm, UpdateEmailForm, UpdateUsernameForm
+from stonks.user.forms import SignupForm, LoginForm, ForgotPasswordForm, ChangePasswordForm, UpdateEmailForm, UpdateUsernameForm, VerifyPasswordForm
 from stonks.user.models import User, Watchlist, database
 from flask_login import login_required, login_user, logout_user, current_user
 from datetime import datetime
@@ -184,34 +184,85 @@ def toggle_notifications():
     
     return jsonify({'error': False}), 400
 
-@auth.route('/update_user/<field>', methods=['POST'])
+@auth.route('/update_username', methods=['POST'])
 @login_required
-def update_user(field):
-    if field == 'username':
-        form = UpdateUsernameForm(request.form)
-    elif field == 'email':
-        form = UpdateEmailForm(request.form)
-        flash('Email update not supported yet', 'danger')
-        return redirect(url_for('auth.profile_page'))
-    else:
-        return redirect(url_for('auth.profile_page'))
-    
-    if form.validate_on_submit():
-        new_value = form.data[field]
+def update_username():
+    form = UpdateUsernameForm(request.form)
 
-        if User.query.filter(getattr(User, field) == new_value).first():
-            flash(f'{field.capitalize()} already taken', 'danger')
+    if form.validate_on_submit():
+        new_username = form.username.data
+
+        if User.query.filter_by(username=new_username).first():
+            flash('Username already taken', 'danger')
             return redirect(url_for('auth.profile_page'))
         
-        setattr(current_user, field, new_value)
+        current_user.username = new_username
         database.session.commit()
-        flash(f'{field.capitalize()} updated successfully', 'success')
-        logging.info(f"{field.capitalize()} updated for user {current_user.username}")
+        flash('Username updated successfully', 'success')
+        logging.info(f"Username updated for user {current_user.username}")
     else:
         flash('Invalid input', 'danger')
         return redirect(url_for('auth.profile_page'))
     
     return redirect(url_for('auth.profile_page'))
+
+@auth.route('/update_email', methods=['POST'])
+@login_required
+def update_email():
+    form = UpdateEmailForm(request.form)
+
+    if form.validate_on_submit():
+        new_email = form.email.data
+
+        if current_user.email == new_email:
+            return redirect(url_for('auth.profile_page'))
+
+        if User.query.filter_by(email=new_email).first():
+            flash('Email already taken', 'danger')
+            return redirect(url_for('auth.profile_page'))
+        
+        token = User.generate_email_change_token(current_user, new_email, app=current_app)
+        mail_handler = current_app.extensions['mail_handler']
+
+        if mail_handler.send_mail_change_verification(token, new_email):
+            flash('Email change verification sent', 'success')
+            logging.info(f"Email change verification sent to {new_email}")
+        else:
+            flash('Failed to send email', 'danger')
+            return redirect(url_for('auth.profile_page'))
+    else:
+        flash('Invalid input', 'danger')
+        return redirect(url_for('auth.profile_page'))
+    
+    return redirect(url_for('auth.profile_page'))
+
+@auth.route('/confirm_email_change/<token>', methods=['GET', 'POST'])
+@login_required
+def confirm_email_change(token):
+    user, new_email = User.check_email_change_token(token, app=current_app)
+
+    logging.info(f"User: {user}, New Email: {new_email}")
+    
+    if not user:
+        flash('Invalid or expired token', 'danger')
+        return redirect(url_for('auth.profile_page'))
+    
+    form = VerifyPasswordForm(request.form)
+
+    if request.method == 'POST' and form.validate_on_submit():
+        password = form.password.data
+
+        if not user.check_password(password):
+            flash('Invalid password', 'danger')
+            return redirect(url_for('auth.confirm_email_change', token=token))
+        
+        user.email = new_email
+        database.session.commit()
+        flash('Email updated successfully', 'success')
+        logging.info(f"Email updated for user {user.username}")
+        return redirect(url_for('auth.profile_page'))
+    
+    return render_template('auth/verify_password.html', form=form, token=token)
 
 @auth.route('/delete_account', methods=['POST'])
 @login_required
@@ -243,7 +294,7 @@ def delete_account():
 @auth.route('/logout', methods=['POST'])
 @login_required
 def logout():
-    logging.info(f"{current_user.username} loggedd out")
+    logging.info(f"{current_user.username} logged out")
     logout_user()
     flash('Logged out successfully', 'success')
     return redirect(url_for('auth.login'))

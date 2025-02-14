@@ -3,24 +3,27 @@
 {% block title %}Homepage{% endblock %}
 
 {% block content %}
-<div class="text-center py-10 bg-gray-50">
+
+<!-- Navbar -->
+<div class="flex justify-between items-center px-6 py-4 bg-white shadow-md">
     <h1 class="text-4xl font-bold text-green-700">Stonks</h1>
-    <p class="text-gray-600 mt-4">Your financial tracking hub.</p>
-    <nav class="mt-6">
+
+    <nav class="flex items-center space-x-6">
         {% if current_user.is_authenticated %}
-        <a href="{{ url_for('stock.watchlist_page') }}" class="text-blue-500 hover:underline mx-2">Watchlist</a>
-        <a href="{{ url_for('auth.profile_page') }}" class="text-blue-500 hover:underline mx-2">Profile</a>
-        <form action="{{ url_for('auth.logout') }}" method="POST" style="display: inline;">
+        <a href="{{ url_for('stock.watchlist_page') }}" class="text-gray-700 hover:text-green-600 font-medium">Watchlist</a>
+        <a href="{{ url_for('auth.profile_page') }}" class="text-gray-700 hover:text-green-600 font-medium">Profile</a>
+        <form action="{{ url_for('auth.logout') }}" method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="text-blue-500 hover:underline">Logout</button>
+            <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</button>
         </form>        
         {% else %}
-        <a href="{{ url_for('auth.login') }}" class="text-blue-500 hover:underline mx-2">Login</a>
-        <a href="{{ url_for('auth.signup') }}" class="text-blue-500 hover:underline mx-2">Signup</a>
+        <a href="{{ url_for('auth.login') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Login</a>
+        <a href="{{ url_for('auth.signup') }}" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Signup</a>
         {% endif %}
     </nav>
 </div>
 
+<!-- Stock News Section -->
 {% if stock_news %}
 <div class="max-w-5xl mx-auto mt-8">
     <h2 class="text-2xl font-semibold text-center mb-6">Latest Stock News from Your Watchlist</h2>
@@ -42,8 +45,7 @@
                         </a>
                     </h4>
                     <p class="text-sm text-gray-600">
-                        Published on: 
-                        {{ article.publishTime }}
+                        Published on: {{ article.publishTime }}
                     </p>
                 </div>
             </div>
@@ -52,9 +54,37 @@
     </div>
     {% endfor %}
 </div>
+
 {% else %}
-<div class="text-center mt-8">
-    <p class="text-gray-600">No stock news available. Add stocks to your watchlist to see the latest news.</p>
+<div class="text-center mt-12">
+    {% if current_user.is_authenticated %}
+    <p class="text-gray-600 text-lg">📌 Your watchlist is empty. Start tracking your favorite stocks now!</p>
+    <a href="{{ url_for('stock.watchlist_page') }}" class="mt-4 inline-block bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600">Go to Watchlist</a>
+    {% else %}
+    <h2 class="text-2xl font-semibold text-gray-800">📈 Welcome to Stonks!</h2>
+    <p class="text-gray-600 mt-2">Track stocks, receive alerts, and stay updated with financial news.</p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mt-6 max-w-5xl mx-auto">
+        <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">📊 Real-Time Stock Tracking</h3>
+            <p class="text-gray-600 mt-2">Monitor stock prices and track your investments effortlessly.</p>
+        </div>
+        <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">🔔 Price Change Alerts</h3>
+            <p class="text-gray-600 mt-2">Get notified when your favorite stocks change significantly.</p>
+        </div>
+        <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">📰 Financial News Updates</h3>
+            <p class="text-gray-600 mt-2">Stay informed with the latest news on stocks you care about.</p>
+        </div>
+        <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">📩 Daily Watchlist Reports</h3>
+            <p class="text-gray-600 mt-2">Receive a daily report on your watchlist stocks via email.</p>
+        </div>
+    </div>
+    
+    {% endif %}
 </div>
 {% endif %}
+
 {% endblock %}

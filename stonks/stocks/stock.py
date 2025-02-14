@@ -8,6 +8,7 @@ import yahooquery as yq
 import json
 from collections import defaultdict
 import logging
+from tabulate import tabulate
 
 stock = Blueprint('stock', __name__)
 
@@ -146,8 +147,8 @@ def update_stock(stock: Stock, stock_changes):
     last_price = stock.current_price
     ticker = yf.Ticker(stock.symbol)
     stock.current_price = float(ticker.info.get('currentPrice', None))
-    if last_price and ((last_price / stock.current_price >= 1.01) or (last_price / stock.current_price <= 0.99)):
-        logging.info(f"%1 price change in {stock.symbol}")
+    if last_price and ((last_price / stock.current_price >= 1.02) or (last_price / stock.current_price <= 0.98)):
+        logging.info(f"%2 price change in {stock.symbol}")
         users = [watchlist.user for watchlist in stock.watchlists]
         for user in users:
             if user.notification_enabled:
@@ -267,26 +268,36 @@ def get_stock_details(symbol):
         return None
     
 def generate_daily_report(app):
-    """"Generate a daily report for the stocks at the watchlist"""
+    """Generate a well-formatted daily report for the watchlist."""
     with app.app_context():
-
-        # Get all the watchlists
         watchlists = Watchlist.query.all()
-
         mail_handler = current_app.extensions['mail_handler']
 
         for watchlist in watchlists:
-            if watchlist.user.notification_enabled is False or not watchlist.stocks:
+            if not watchlist.user.notification_enabled or not watchlist.stocks:
                 continue
-            report = 'Daily Report of Your Watchlist\n\n'
-            for stock in watchlist.stocks:
-                stock_symbol = stock.symbol
-                stock_price = stock.current_price
-                stock_percent_change = stock.percent_change
 
-                report += f"Stock: {stock_symbol}\n"
-                report += f"Price: ${stock_price}\n"
-                report += f"Percent Change: {stock_percent_change}%\n\n"
+            report_header = "📊 Daily Stock Watchlist Report\n\n"
+
+            # Prepare table data
+            table_data = []
+            for stock in watchlist.stocks:
+                stock_symbol = f"{stock.symbol}"
+                stock_price = f"${stock.current_price:.2f}"
+                stock_percent_change = f"{stock.percent_change:+.2f}%"  # Adds + or - sign
+                table_data.append([stock_symbol, stock_price, stock_percent_change])
+
+            # Format table
+            report_table = tabulate(
+                table_data, 
+                headers=["Stock", "Price", "Change"], 
+                tablefmt="orgtbl"  # Clean, readable format
+            )
+
+            # Final report
+            report = report_header + "```\n" + report_table + "\n```"  # Markdown formatting for readability
+
+            # Send email
             if mail_handler.send_watchlist_report([watchlist.user.email], report):
                 logging.info(f"Report sent to {watchlist.user.username}")
             else:

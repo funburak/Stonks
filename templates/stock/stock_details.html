@@ -3,55 +3,59 @@
 {% block title %}Stock Details{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto mt-10 relative">
-    <h2 class="text-2xl font-semibold text-center mb-6">Stock Details</h2>
+<div class="max-w-3xl mx-auto mt-10 px-4">
+    <!-- Stock Header -->
+    <h2 class="text-3xl font-bold text-center text-gray-900 mb-6">📊 Stock Details</h2>
 
     {% if stock_data %}
-    <div class="bg-white shadow-lg rounded-lg p-6 border border-gray-200">
-        <!-- Stock Symbol -->
-        <h3 class="text-lg font-semibold mb-4 text-gray-900" id="stock_header"></h3>
+    <div class="rounded-lg shadow-lg p-6 border transition duration-300"
+         id="stockContainer">
+        
+        <!-- Stock Symbol & Company Name -->
+        <h3 class="text-xl font-semibold text-gray-900 text-center" id="stock_header"></h3>
 
         <!-- Stock Data -->
-        <div class="grid grid-cols-2 gap-4">
-            <p><span class="font-medium text-gray-600">Open Price:</span> <span id="open_price">N/A</span></p>
-            <p><span class="font-medium text-gray-600">High Price:</span> <span id="high_price">N/A</span></p>
-            <p><span class="font-medium text-gray-600">Low Price:</span> <span id="low_price">N/A</span></p>
-            <p><span class="font-medium text-gray-600">Close Price:</span> <span id="close_price">N/A</span></p>
+        <div class="grid grid-cols-2 gap-4 mt-4 text-gray-900">
+            <p><span class="font-medium text-gray-700">📌 Open:</span> <span id="open_price">N/A</span></p>
+            <p><span class="font-medium text-gray-700">📈 High:</span> <span id="high_price">N/A</span></p>
+            <p><span class="font-medium text-gray-700">📉 Low:</span> <span id="low_price">N/A</span></p>
+            <p><span class="font-medium text-gray-700">💰 Close:</span> <span id="close_price">N/A</span></p>
         </div>
 
         <!-- Weekly Stock Price Chart -->
         <div class="mt-6">
-            <h3 class="text-lg font-semibold text-gray-900">Stock Price (Weekly)</h3>
+            <h3 class="text-lg font-semibold text-gray-800">📊 Stock Price (Weekly)</h3>
             <canvas id="priceChart"></canvas>
         </div>
 
-        <!-- Percent Change Chart (Bar Chart) -->
+        <!-- Daily % Change Chart (Bar Chart) -->
         <div class="mt-6">
-            <h3 class="text-lg font-semibold text-gray-900">Daily % Change</h3>
+            <h3 class="text-lg font-semibold text-gray-800">📉 Daily % Change</h3>
             <canvas id="changeChart"></canvas>
         </div>
 
         <!-- Trading Volume Chart -->
         <div class="mt-6">
-            <h3 class="text-lg font-semibold text-gray-900">Trading Volume</h3>
+            <h3 class="text-lg font-semibold text-gray-800">📊 Trading Volume</h3>
             <canvas id="volumeChart"></canvas>
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex justify-end mt-6 space-x-3">
+        <div class="flex justify-center mt-6">
             <a href="{{ url_for('stock.watchlist_page') }}" 
-               class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
-                Back to Watchlist
+               class="bg-gray-500 text-white px-5 py-2 rounded-lg hover:bg-gray-600 transition">
+                🔙 Back to Watchlist
             </a>
         </div>
     </div>
+    
     {% else %}
-    <!-- Fallback if stock data is not found -->
-    <p class="text-center text-gray-600">Stock details not found or live data unavailable.</p>
+    <!-- Fallback if stock data is unavailable -->
+    <p class="text-center text-gray-600 mt-6">⚠️ Stock details not found or live data unavailable.</p>
     <div class="text-center mt-4">
         <a href="{{ url_for('stock.watchlist_page') }}" 
-           class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
-            Back to Watchlist
+           class="bg-gray-500 text-white px-5 py-2 rounded-lg hover:bg-gray-600 transition">
+            🔙 Back to Watchlist
         </a>
     </div>
     {% endif %}

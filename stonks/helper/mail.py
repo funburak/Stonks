@@ -29,9 +29,14 @@ class MailHandler:
         
     def send_change_mail(self, stock_symbols):
         for mail, stocks in stock_symbols.items():
-            stock_list = ', '.join(stocks)
-            subject = 'Stock Price Change'
-            body = f"The following stocks have changed by more than %1: {stock_list}"
+            if not stocks:
+                continue
+            stock_list = "\n".join(f"- {stock}" for stock in stocks)
+            subject = 'Stock Price Alert: Significant Change'
+            body = (
+                f"The following stocks have changed by more than %2:\n\n"
+                f"{stock_list}\n\n"
+            )
             msg = Message(subject, recipients=[mail])
             msg.body = body
             try:
@@ -40,3 +45,15 @@ class MailHandler:
                 print('Failed to send email')
                 return False
         return True
+
+    def send_mail_change_verification(self, token, recipient):
+        subject = 'Email Change Confirmation'
+        confirm_url = f"{url_for('auth.confirm_email_change', token=token, _external=True)}"
+        body = f"Click the link to confirm your email update: {confirm_url} \n This link will expire in 10 minutes"
+        msg = Message(subject, recipients=[recipient], body=body)
+        try:
+            self.mail.send(msg)
+            return True
+        except:
+            print('Failed to send email')
+            return False

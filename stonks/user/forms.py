@@ -25,3 +25,6 @@ class UpdateEmailForm(FlaskForm):
 class UpdateUsernameForm(FlaskForm):
     username = StringField('Username', validators=[InputRequired(), Length(min=4, max=15,
                                                                            message='Username must be between 4 and 15 characters')])
+    
+class VerifyPasswordForm(FlaskForm):
+    password = PasswordField('Password', validators=[InputRequired()])

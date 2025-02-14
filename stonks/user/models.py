@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime, timedelta
 import jwt
+import logging
 
 database = SQLAlchemy()
 
@@ -39,7 +40,7 @@ class User(UserMixin, database.Model):
         
         payload = {
             'user_id': self.id,
-            'exp': datetime.now() + timedelta(seconds=expire_time) - timedelta(hours=3)
+            'exp': datetime.now() + timedelta(seconds=expire_time)
         }
         return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
     
@@ -55,6 +56,42 @@ class User(UserMixin, database.Model):
             return None
         except jwt.InvalidTokenError:
             return None
+        
+
+    def generate_email_change_token(self, new_email, app=None, expire_time=600):
+        if app is None:
+            raise ValueError('app must be provided')
+        
+        payload = {
+            'user_id': self.id,
+            'new_email': new_email,
+            'exp': datetime.now() + timedelta(seconds=expire_time)
+        }
+        return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+    
+    @staticmethod
+    def check_email_change_token(token, app=None):
+        """Verifies the email change token and returns (user, new_email) if valid."""
+        if app is None:
+            raise ValueError('app must be provided')
+
+        try:
+            payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+            user = User.query.filter_by(id=payload.get('user_id')).first()
+
+            if user:
+                return user, payload.get('new_email')  # Return the user and the new email
+            return None, None
+
+        except jwt.ExpiredSignatureError:
+            logging.error('Token expired')
+            return None, None  # Token expired
+        except jwt.DecodeError:
+            logging.error('Invalid token: Decode Error')
+            return None, None  # Invalid token
+        except jwt.InvalidTokenError:
+            logging.error('Invalid token')
+            return None, None  # Other JWT-related issues
 
 class Watchlist(database.Model):
     __tablename__ = 'watchlist'

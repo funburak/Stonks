@@ -2,39 +2,39 @@
 {% block title %}Watchlist{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto mt-10">
+<div class="max-w-5xl mx-auto mt-10 px-4">
+
     <!-- Home Button -->
-    <a href="{{ url_for('dashboard.homepage') }}" class="absolute top-0 left-0 p-2">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" 
-             class="w-8 h-8 text-gray-700 hover:text-gray-900 transition">
+    <a href="{{ url_for('dashboard.homepage') }}" class="absolute top-4 left-4 p-2 hover:bg-gray-100 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8 text-gray-700">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75L12 3l9 6.75M4.5 10.5v10.5h15V10.5" />
         </svg>
     </a>
 
-    <h2 class="text-2xl font-semibold text-center mb-6">Stock Watchlist</h2>
+    <h2 class="text-3xl font-bold text-center text-gray-900 mb-6">📈 Your Stock Watchlist</h2>
 
     <!-- Stock Search Form -->
-    <form method="GET" action="{{ url_for('stock.search_stock') }}" class="flex space-x-2 mb-6">
-        <input type="text" name="q" placeholder="Enter company name..." autocomplete="off"
-            class="border border-gray-300 rounded-lg px-4 py-2 w-full focus:ring focus:ring-blue-300 focus:outline-none"
+    <form method="GET" action="{{ url_for('stock.search_stock') }}" class="flex items-center bg-gray-100 border border-gray-300 rounded-lg p-2 mb-6">
+        <input type="text" name="q" placeholder="Search company..." autocomplete="off"
+            class="bg-transparent border-none w-full px-4 py-2 focus:ring-0 focus:outline-none"
             required>
-        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
-            Search
+        <button type="submit" class="bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600 transition">
+            🔍 Search
         </button>
     </form>
 
     <!-- Search Results Section -->
     {% if search_results %}
-    <h3 class="text-lg font-semibold mb-4">Search Results:</h3>
+    <h3 class="text-lg font-semibold mb-4 text-gray-800">Search Results:</h3>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {% for stock in search_results %}
-        <div class="bg-white shadow-lg rounded-lg p-4 border border-gray-200 flex justify-between items-center">
+        <div class="bg-white shadow-md rounded-lg p-4 border border-gray-200 flex justify-between items-center hover:shadow-lg transition">
             <span class="text-lg font-medium text-gray-800">{{ stock.symbol }} - {{ stock.name }}</span>
             <form action="{{ url_for('stock.add_stock') }}" method="POST">
                 <input type="hidden" name="symbol" value="{{ stock.symbol }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 transition">
-                    Add
+                    ➕ Add
                 </button>
             </form>
         </div>
@@ -43,42 +43,45 @@
     {% endif %}
 
     <!-- Watchlist Section -->
-    <h3 class="text-lg font-semibold mt-6">Your Selected Stocks:</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+    <h3 class="text-xl font-semibold mt-8 text-gray-800">📌 Your Selected Stocks:</h3>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
         {% for stock in watchlist.stocks | sort(attribute='symbol') %}
-        <div class="p-4 rounded-lg shadow-lg border transition-all duration-300 
-                    {% if stock.percent_change >= 0 %} bg-green-100 {% else %} bg-red-100 {% endif %}">
-            <div class="flex justify-between items-center mb-4">
-                <!-- Stock Symbol and Percent Change -->
-                <span class="text-lg font-medium text-gray-900">
-                    {{ stock.symbol }}
-                    <span class="{% if stock.percent_change >= 0 %} text-green-600 {% else %} text-red-600 {% endif %}">
-                        ({{ stock.percent_change }}%)
-                    </span>
+        <div class="p-6 rounded-lg shadow-md border hover:shadow-lg transition duration-300
+                    {% if stock.percent_change >= 0 %} bg-green-100 border-green-400 {% else %} bg-red-100 border-red-400 {% endif %}">
+
+            <div class="flex justify-between items-center">
+                <!-- Stock Symbol -->
+                <span class="text-lg font-medium text-gray-900">{{ stock.symbol }}</span>
+                <!-- Percent Change Badge -->
+                <span class="text-sm px-2 py-1 rounded-lg bg-white text-gray-800 font-semibold shadow">
+                    {{ stock.percent_change }}%
                 </span>
             </div>
 
             <!-- Current Price -->
-            <p class="text-gray-600 mb-4">Current Price: ${{ stock.current_price }}</p>
+            <p class="text-gray-900 font-semibold mt-2">💲 Price: ${{ stock.current_price }}</p>
 
             <!-- Action Buttons -->
-            <div class="flex space-x-2">
-                <!-- Info Button -->
+            <div class="flex justify-between mt-4">
+                <!-- Stock Details Button -->
                 <a href="{{ url_for('stock.stock_details', stock_id=stock.id) }}" 
-                   class="bg-gray-500 text-white px-3 py-1 rounded-lg hover:bg-gray-600 transition">
-                    Details
+                   class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                   📊 Details
                 </a>
-                <!-- Remove Button with Trash Icon -->
+
+                <!-- Remove Stock Button -->
                 <form action="{{ url_for('stock.delete_stock', stock_id=stock.id) }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition">
-                        <i class="fa fa-trash-o"></i>
-                    Remove
+                    <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center">
+                        🗑 Remove
                     </button>
                 </form>
             </div>
+
         </div>
         {% endfor %}
     </div>
+
 </div>
 {% endblock %}

@@ -3,8 +3,7 @@
 {% block title %}Profile{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg">
-    <h2 class="text-2xl font-semibold text-center mb-4">User Profile</h2>
+<div class="max-w-2xl mx-auto mt-20 p-8 bg-white shadow-lg rounded-lg relative">
 
     <!-- Home Button -->
     <a href="{{ url_for('dashboard.homepage') }}" class="absolute top-0 left-0 p-2">
@@ -15,56 +14,59 @@
     </a>
 
     <!-- Profile Picture Section -->
-    <div class="relative flex flex-col items-center mb-6">
-        <img src="{{ user.profile_picture }}" 
-             alt="Profile Picture" class="w-32 h-32 rounded-full shadow-md">
-        
-        <!-- Edit Icon (Opens File Input) -->
-        <label for="profile_picture_upload" class="absolute bottom-2 right-2 bg-gray-800 text-white p-2 rounded-full cursor-pointer hover:bg-gray-600">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M5 13l4 4L19 7M13 7h6m-3-3v6" />
-            </svg>
-        </label>
+    <div class="text-center">
+        <div class="relative inline-block">
+            <img src="{{ user.profile_picture }}" alt="Profile Picture" class="w-32 h-32 rounded-full shadow-md border-4 border-gray-200">
+            
+            <!-- Edit Icon -->
+            <label for="profile_picture_upload" class="absolute bottom-2 right-2 bg-gray-700 text-white p-2 rounded-full cursor-pointer hover:bg-gray-500 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7M13 7h6m-3-3v6" />
+                </svg>
+            </label>
 
-        <!-- Hidden File Input -->
-        <form id="profilePictureForm" method="POST" action="{{ url_for('auth.upload_profile_picture') }}" enctype="multipart/form-data" class="hidden">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="file" name="profile_picture" id="profile_picture_upload" accept="image/*" class="hidden" onchange="document.getElementById('profilePictureForm').submit();">
+            <!-- Hidden File Input -->
+            <form id="profilePictureForm" method="POST" action="{{ url_for('auth.upload_profile_picture') }}" enctype="multipart/form-data" class="hidden">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="file" name="profile_picture" id="profile_picture_upload" accept="image/*" class="hidden" onchange="document.getElementById('profilePictureForm').submit();">
+            </form>
+        </div>
+        <h2 class="text-2xl font-semibold text-gray-800 mt-3">{{ user.username }}</h2>
+        <p class="text-gray-600">{{ user.email }}</p>
+    </div>
+
+    <!-- Profile Update Forms -->
+    <div class="mt-8 space-y-6">
+        <!-- Update Username -->
+        <form method="POST" action="{{ url_for('auth.update_username') }}" class="p-4 bg-gray-50 rounded-lg shadow-md">
+            {{ username_form.hidden_tag() }}
+            <label for="username" class="block font-semibold">Username</label>
+            <input type="text" name="username" id="username" value="{{ user.username }}" 
+                   class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-300 mt-1" required>
+            <button type="submit" class="w-full bg-green-500 text-white px-4 py-2 rounded mt-3 hover:bg-green-600 transition">
+                Update Username
+            </button>
+        </form>
+
+        <!-- Update Email -->
+        <form method="POST" action="{{ url_for('auth.update_email') }}" class="p-4 bg-gray-50 rounded-lg shadow-md">
+            {{ email_form.hidden_tag() }}
+            <label for="email" class="block font-semibold">Email</label>
+            <input type="email" name="email" id="email" value="{{ user.email }}" 
+                   class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-300 mt-1" required>
+            <button type="submit" class="w-full bg-green-500 text-white px-4 py-2 rounded mt-3 hover:bg-green-600 transition">
+                Update Email
+            </button>
         </form>
     </div>
 
-    <!-- Update Username Form -->
-    <form method="POST" action="{{ url_for('auth.update_user', field='username') }}" class="space-y-4">
-        {{ username_form.hidden_tag() }}
-        <label for="username" class="font-semibold">Username:</label>
-        <input type="text" name="username" id="username" value="{{ user.username }}" 
-               class="border rounded px-3 py-2 focus:ring focus:ring-blue-300 w-full" required>
-        <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full">
-            Update Username
-        </button>
-    </form>
-
-    <!-- Update Email Form -->
-    <form method="POST" action="{{ url_for('auth.update_user', field='email') }}" class="space-y-4 mt-4">
-        {{ email_form.hidden_tag() }}
-        <label for="email" class="font-semibold">Email:</label>
-        <input type="email" name="email" id="email" value="{{ user.email }}" 
-               class="border rounded px-3 py-2 focus:ring focus:ring-blue-300 w-full" required>
-        <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 w-full">
-            Update Email
-        </button>
-    </form>
-
-    <!-- Notifications Toggle -->
-    <div class="mt-6 flex items-center justify-between">
-        <span class="font-semibold">Enable Daily Report Mails</span>
+    <!-- Notification Toggle -->
+    <div class="mt-6 flex items-center justify-between p-4 bg-gray-50 rounded-lg shadow-md">
+        <span class="font-semibold text-gray-800">Enable Daily Report Mails</span>
         <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="notificationToggle" 
-                class="sr-only peer"
+            <input type="checkbox" id="notificationToggle" class="sr-only peer"
                 {% if user.notification_enabled %}checked{% endif %}>
-            <div class="w-11 h-6 bg-gray-300 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 
-                        rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full 
+            <div class="w-11 h-6 bg-gray-300 peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full 
                         peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 
                         after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full 
                         after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
@@ -73,24 +75,40 @@
     </div>
 
     <!-- Delete Account -->
-    <div class="text-center mt-6">
-        <form id="deleteAccountForm" method="POST" action="{{ url_for('auth.delete_account') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="button" id="onDeleteButton" 
-                    class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                Delete My Account
-            </button>
-        </form>
+    <div class="mt-6 text-center">
+        <button type="button" id="onDeleteButton" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
+            Delete My Account
+        </button>
     </div>
 </div>
 
+<!-- Delete Account Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+        <h2 class="text-xl font-semibold text-gray-800">⚠️ Confirm Account Deletion</h2>
+        <p class="text-gray-600 mt-2">This action is permanent. Are you sure you want to proceed?</p>
+        <div class="mt-4 flex justify-between">
+            <button id="cancelDelete" class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400">Cancel</button>
+            <form id="deleteAccountForm" method="POST" action="{{ url_for('auth.delete_account') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
 <script>
+    // Delete Account Confirmation
     document.getElementById("onDeleteButton").addEventListener("click", function() {
-        if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-            document.getElementById("deleteAccountForm").submit();
-        }
+        document.getElementById("deleteModal").classList.remove("hidden");
     });
 
+    document.getElementById("cancelDelete").addEventListener("click", function() {
+        document.getElementById("deleteModal").classList.add("hidden");
+    });
+
+    // Toggle Notifications
     document.getElementById("notificationToggle").addEventListener("change", function() {
         let enabled = this.checked;
 
