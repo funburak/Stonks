@@ -55,10 +55,10 @@ def register_extensions(app: Flask):
 
     with app.app_context():
         scheduler.add_job(func=update_stock_prices_daily,
-                          trigger=CronTrigger(hour=10, minute=0),
+                          trigger=CronTrigger(hour=10, minute=15),
                           args=[app]) # Update stock prices daily at 10:00 AM
         scheduler.add_job(func=generate_daily_report,
-                          trigger=CronTrigger(hour=10, minute=5),
+                          trigger=CronTrigger(hour=10, minute=20),
                           args=[app]) # Generate daily report at 10:05 AM
         
         scheduler.start()
