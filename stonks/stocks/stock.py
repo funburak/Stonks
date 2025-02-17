@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, Response
 from stonks.user.models import Stock, Watchlist, database
 from stonks.helper.extensions import cache
 from flask_login import login_required, current_user
@@ -9,6 +9,8 @@ import json
 from collections import defaultdict
 import logging
 from tabulate import tabulate
+import csv
+import io
 
 stock = Blueprint('stock', __name__)
 
@@ -113,6 +115,45 @@ def watchlist_page():
     user_watchlist = current_user.watchlist
 
     return render_template('stock/watchlist.html', watchlist=user_watchlist)
+
+@stock.route('/download-watchlist')
+@login_required
+def download_watchlist():
+    if not current_user.watchlist:
+        flash('Watchlist not found', 'danger')
+        return redirect(url_for('stock.watchlist_page'))
+
+    user_watchlist = current_user.watchlist
+
+    if not user_watchlist.stocks:
+        flash('No stocks in the watchlist', 'danger')
+        return redirect(url_for('stock.watchlist_page'))
+
+    try:
+        output = io.StringIO()
+        fieldnames = ["Stock Symbol", "Current Price", "Percent Change", "Last Updated At"]
+
+        writer = csv.DictWriter(output, fieldnames=fieldnames, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        writer.writeheader()  # Write column headers
+
+        # Write stock data as dictionary
+        for stock in user_watchlist.stocks:
+            writer.writerow({
+                "Stock Symbol": stock.symbol,
+                "Current Price": f"{stock.current_price:.2f}",
+                "Percent Change": f"{stock.percent_change:.2f}%",
+                "Last Updated At": stock.last_updated_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+
+        output.seek(0)
+
+        response = Response(output.getvalue(), content_type="text/csv; charset=utf-8")
+        response.headers["Content-Disposition"] = "attachment; filename=watchlist.csv"
+        return response
+    except Exception as e:
+        logging.error(f"An error occurred while downloading the watchlist: {e}")
+        flash('An error occurred while downloading the watchlist', 'danger')
+        return redirect(url_for('auth.profile_page'))
 
 def update_stock_prices_daily(app):
     """
