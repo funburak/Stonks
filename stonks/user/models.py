@@ -22,6 +22,7 @@ class User(UserMixin, database.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(database.String(100), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(database.String(120), unique=True, nullable=False)
+    email_verified: Mapped[bool] = mapped_column(database.Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(database.DateTime, default=datetime.now) # Date of account creation
     profile_picture: Mapped[str] = mapped_column(database.String(255), nullable=True) # URL to the profile picture
     notification_enabled: Mapped[bool] = mapped_column(database.Boolean, default=True) # Whether to send notifications to the user

@@ -57,3 +57,14 @@ class MailHandler:
         except:
             print('Failed to send email')
             return False
+        
+    def send_otp_mail(self, otp, recipient):
+        subject = 'OTP Verification'
+        body = f"Your OTP is: {otp} \n This OTP will expire in 10 minutes"
+        msg = Message(subject, recipients=[recipient], body=body)
+        try:
+            self.mail.send(msg)
+            return True
+        except:
+            print('Failed to send email')
+            return False

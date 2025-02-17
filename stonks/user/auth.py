@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify
-from stonks.user.forms import SignupForm, LoginForm, ForgotPasswordForm, ChangePasswordForm, UpdateEmailForm, UpdateUsernameForm, VerifyPasswordForm
+from stonks.user.forms import SignupForm, LoginForm, ForgotPasswordForm, ChangePasswordForm, UpdateEmailForm, UpdateUsernameForm, VerifyPasswordForm, OTPForm
 from stonks.user.models import User, Watchlist, database
 from flask_login import login_required, login_user, logout_user, current_user
 from datetime import datetime
@@ -7,6 +7,8 @@ import cloudinary
 import cloudinary.uploader
 import logging
 import os
+import pyotp
+import bcrypt
 
 auth = Blueprint('auth', __name__)
 
@@ -33,22 +35,12 @@ def signup():
             flash('Username already taken', 'danger')
             return redirect(url_for('auth.signup'))
         
-        user = User(
-            username=username,
-            email = email,
-            created_at = datetime.now()
-        )
-
-        user.watchlist = Watchlist(user=user)
-        user.set_password(password) # Hash the password
-        session['autofill_username'] = user.username # Autofill username in login form
-
-        database.session.add(user)
-        database.session.commit()
-        logging.info(f'User {user.username} signed up successfully')
-        flash("Signed up successfully", 'success')
-        return redirect(url_for('auth.login'))
-    
+        if not generate_otp(username, email, password):
+            flash('Failed to send OTP', 'danger')
+        
+        flash('OTP sent to email', 'success')
+        return redirect(url_for('auth.verify_otp'))
+        
     return render_template('auth/signup.html', form=form)
 
 @auth.route('/login', methods=['GET', 'POST'])
@@ -67,7 +59,7 @@ def login():
         password = form.password.data
 
         user = User.query.filter_by(username=form.username.data).first()
-        if user and user.check_password(password):
+        if user and user.check_password(password) and user.email_verified:
             login_user(user=user)
             session.permanent = True
             flash(f'Welcome to Stonks! {current_user.username}', 'success')
@@ -240,9 +232,7 @@ def update_email():
 @login_required
 def confirm_email_change(token):
     user, new_email = User.check_email_change_token(token, app=current_app)
-
-    logging.info(f"User: {user}, New Email: {new_email}")
-    
+        
     if not user:
         flash('Invalid or expired token', 'danger')
         return redirect(url_for('auth.profile_page'))
@@ -291,6 +281,78 @@ def delete_account():
         flash('User not found', 'danger')
         return redirect(url_for('auth.login'), 404)
     
+def generate_otp(username, email, password):
+    """
+    Generate an OTP and send it to the user's email. Also store the user's details in the session.
+    """
+    totp = pyotp.TOTP(pyotp.random_base32(), interval=300) # Generate a TOTP with a 5 minute interval
+    otp = totp.now()
+    
+
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    session['pending_user'] = {
+        'username': username,
+        'email': email,
+        'password': hashed_password,
+        'otp': otp,
+        'otp_generated_at': datetime.now().astimezone().isoformat()
+    }
+
+    mail_handler = current_app.extensions['mail_handler']
+
+    if mail_handler.send_otp_mail(otp, email):
+        logging.info(f"OTP sent to {email}")
+        return True
+    
+    logging.info(f"Failed to send OTP to {email}")
+    return False
+
+@auth.route('/verify_otp', methods=['GET', 'POST'])
+def verify_otp():
+    if 'pending_user' not in session:
+        flash('No pending user', 'danger')
+
+    form = OTPForm(request.form)
+
+    if request.method == 'POST' and form.validate_on_submit():
+        otp = form.otp.data
+
+        pending_user_info = session['pending_user']
+
+        # Check if OTP is valid
+        otp_generated_at = datetime.fromisoformat(pending_user_info['otp_generated_at']).astimezone()
+
+        current_time = datetime.now().astimezone()
+
+        if (current_time - otp_generated_at).total_seconds() > 300:
+            flash('OTP expired', 'danger')
+            session.pop('pending_user')
+            return redirect(url_for('auth.signup'))
+        
+        if otp == pending_user_info['otp']:
+            user = User(
+                username=pending_user_info['username'],
+                email = pending_user_info['email'],
+                password = pending_user_info['password'],
+                created_at = datetime.now(),
+                email_verified = True
+            )
+
+            user.watchlist = Watchlist(user=user)
+            session['autofill_username'] = user.username
+            database.session.add(user)
+            database.session.commit()
+            logging.info(f'User {user.username} signed up successfully')
+            flash("Signed up successfully", 'success')
+            session.pop('pending_user')
+            return redirect(url_for('auth.login'))
+        else:
+            flash('Invalid OTP', 'danger')
+            return redirect(url_for('auth.verify_otp'))
+        
+    return render_template('auth/otp_verify.html', form=form)
+
 @auth.route('/logout', methods=['POST'])
 @login_required
 def logout():

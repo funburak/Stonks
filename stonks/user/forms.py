@@ -28,3 +28,6 @@ class UpdateUsernameForm(FlaskForm):
     
 class VerifyPasswordForm(FlaskForm):
     password = PasswordField('Password', validators=[InputRequired()])
+
+class OTPForm(FlaskForm):
+    otp = StringField('OTP', validators=[InputRequired(), Length(min=6, max=6)])
