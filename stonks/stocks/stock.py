@@ -44,12 +44,15 @@ def get_stock_news(symbol):
 def search_stock():
     query = request.args.get('q').strip()
     if not query:
+        logging.info("No query provided")
         return render_template('stock/watchlist.html', watchlist= current_user.watchlist, search_results=[])
     
     try:
         search_results = yq.search(query)
 
-        if not search_results or "quotes" not in search_results:
+        if not search_results or not search_results["quotes"]:
+            logging.info(f"No results found for {query}")
+            flash(f'No results found for {query}', 'warning')
             return render_template('stock/watchlist.html', watchlist= current_user.watchlist, search_results=[])
         
         results = []

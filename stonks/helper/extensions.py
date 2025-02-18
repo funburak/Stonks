@@ -5,6 +5,8 @@ from stonks.user.models import User
 import logging
 from pytz import timezone
 import os
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 logging.basicConfig(level=logging.INFO)
 
@@ -14,6 +16,8 @@ login_manager = LoginManager()
 
 timezone = os.getenv("TZ", "Etc/GMT-3")
 scheduler = BackgroundScheduler(timezone=timezone)
+
+limiter = Limiter(get_remote_address, default_limits=["100 per day", "20 per hour", "5 per minute"])
 
 login_manager.login_view = "auth.login"
 login_manager.login_message = "Please log in to access Stonks"

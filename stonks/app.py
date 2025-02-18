@@ -1,9 +1,9 @@
-from flask import Flask
+from flask import Flask, render_template
 from stonks.helper.config import config
 from stonks.helper.mail import MailHandler
 from flask_wtf.csrf import CSRFProtect
 from stonks.user.models import database
-from stonks.helper.extensions import cache, login_manager, scheduler, log_next_run_time
+from stonks.helper.extensions import cache, login_manager, scheduler, limiter, log_next_run_time
 from stonks.stocks.stock import update_stock_prices_daily, generate_daily_report
 from apscheduler.triggers.cron import CronTrigger
 from flask_migrate import Migrate
@@ -16,6 +16,7 @@ def create_app():
     register_mail(app)
     register_blueprints(app)
     register_extensions(app)
+    register_error_pages(app)
 
     log_next_run_time()
     return app
@@ -62,6 +63,8 @@ def register_extensions(app: Flask):
                           args=[app]) # Generate daily report at 10:05 AM
         
         scheduler.start()
+    
+    limiter.init_app(app) # Limiter for the rate limiting
 
 def register_mail(app: Flask):
     """
@@ -87,3 +90,23 @@ def register_blueprints(app: Flask):
     app.register_blueprint(dashboard)
     app.register_blueprint(auth)
     app.register_blueprint(stock)
+
+
+def register_error_pages(app: Flask):
+    """
+    Register the error pages for the app
+
+    Args:
+        app (Flask): The Flask app
+    """
+    @app.errorhandler(404)
+    def page_not_found(e):
+        return render_template('errors/404.html'), 404
+    
+    @app.errorhandler(500)
+    def internal_server_error(e):
+        return render_template('errors/500.html'), 500
+    
+    @app.errorhandler(429)
+    def rate_limit_exceeded(e):
+        return render_template('errors/429.html'), 429
