@@ -59,6 +59,20 @@ Displays the user's stock watchlist.
 
 ---
 
+Download Watchlist
+~~~~~~~~~~~~~~~~~~
+
+Generates a CSV file containing the user's watchlist and prompts the user to download it.
+
+**Route:** `/download_watchlist`
+**Methods:** `GET`
+**Authentication:** Required
+
+**Response:**
+- Returns a CSV file containing the user's watchlist.
+
+---
+
 Delete a Stock
 ~~~~~~~~~~~~~~
 
@@ -120,16 +134,6 @@ Updates stock prices daily and removes stocks that are no longer in any watchlis
 
 ---
 
-Update a Single Stock
-~~~~~~~~~~~~~~~~~~~~~
-
-Fetches and updates the latest price for a single stock.
-
-**Arguments:**
-- `stock` (Stock): The stock object to update.
-
----
-
 Get Stock Details
 ~~~~~~~~~~~~~~~~~
 
@@ -150,3 +154,15 @@ Generates a daily report for all stocks in user watchlists and sends the report 
 
 **Arguments:**
 - `app`: The Flask app context.
+
+---
+
+Send Notification Mail
+~~~~~~~~~~~~~~~~~~~~~~
+
+Sends an email notification to the user with the changes in their watchlist.
+
+**Arguments:**
+- `stock_changes` (dict): A dictionary containing stock symbols as keys and price changes as values.
+
+---

@@ -95,11 +95,105 @@
 - Ensures the new password and confirmation password match.</p>
 <p>—</p>
 </section>
+<section id="profile">
+<h3>Profile<a class="headerlink" href="#profile" title="Link to this heading">¶</a></h3>
+<p>Displays the user’s profile information.</p>
+<p><strong>Route:</strong> <cite>/profile</cite>
+<strong>Methods:</strong> <cite>GET</cite>
+<strong>Authentication:</strong> Required</p>
+<p><strong>Features:</strong>
+- Lets users view their profile information.
+- Lets users update their profile picture, username, email, and notification settings.
+- Lets users update their notification settings.
+- Lets users delete their account.</p>
+<ul class="simple">
+<li><p><strong>GET</strong>: Renders the user’s profile page (<cite>auth/profile.html</cite>).</p></li>
+</ul>
+<p>—</p>
+</section>
+<section id="upload-profile-picture">
+<h3>Upload Profile Picture<a class="headerlink" href="#upload-profile-picture" title="Link to this heading">¶</a></h3>
+<p>Allows users to upload a profile picture.</p>
+<p><strong>Route:</strong> <cite>/upload_profile_picture</cite>
+<strong>Methods:</strong> <cite>POST</cite>
+<strong>Authentication:</strong> Required</p>
+<ul class="simple">
+<li><p><strong>POST</strong>: Uploads the users selected profile picture to Cloudinary.</p></li>
+</ul>
+<p>—</p>
+</section>
+<section id="toggle-notifications">
+<h3>Toggle Notifications<a class="headerlink" href="#toggle-notifications" title="Link to this heading">¶</a></h3>
+<p>Allows users to toggle notifications.</p>
+<p><strong>Route:</strong> <cite>/toggle_notifications</cite>
+<strong>Methods:</strong> <cite>POST</cite>
+<strong>Authentication:</strong> Required</p>
+<ul class="simple">
+<li><p><strong>POST</strong>: Toggles the users notification settings.</p></li>
+</ul>
+<p>—</p>
+</section>
+<section id="update-username">
+<h3>Update Username<a class="headerlink" href="#update-username" title="Link to this heading">¶</a></h3>
+<p>Allows users to update their username.</p>
+<p><strong>Route:</strong> <cite>/update_username</cite>
+<strong>Methods:</strong> <cite>POST</cite>
+<strong>Authentication:</strong> Required</p>
+<ul class="simple">
+<li><p><strong>POST</strong>: Updates the users username.</p></li>
+</ul>
+<p>—</p>
+</section>
+<section id="update-email">
+<h3>Update Email<a class="headerlink" href="#update-email" title="Link to this heading">¶</a></h3>
+<p>Allows users to update their email.</p>
+<p><strong>Route:</strong> <cite>/update_email</cite>
+<strong>Methods:</strong> <cite>POST</cite>
+<strong>Authentication:</strong> Required</p>
+<ul class="simple">
+<li><p><strong>POST</strong>: Sends a verification email to the new email.</p></li>
+</ul>
+<p>—</p>
+</section>
+<section id="confirm-email-change">
+<h3>Confirm Email Change<a class="headerlink" href="#confirm-email-change" title="Link to this heading">¶</a></h3>
+<p>Allows users to confirm their email change.</p>
+<p><strong>Route:</strong> <cite>/confirm_email_change/&lt;token&gt;</cite>
+<strong>Methods:</strong> <cite>GET</cite>, <cite>POST</cite>
+<strong>Authentication:</strong> Required</p>
+<ul class="simple">
+<li><p><strong>GET</strong>: Renders the email change confirmation page.</p></li>
+<li><p><strong>POST</strong>: Updates the users email.</p></li>
+</ul>
+<p>—</p>
+</section>
+<section id="delete-account">
+<h3>Delete Account<a class="headerlink" href="#delete-account" title="Link to this heading">¶</a></h3>
+<p>Allows users to delete their account.</p>
+<p><strong>Route:</strong> <cite>/delete_account</cite>
+<strong>Methods:</strong> <cite>POST</cite>
+<strong>Authentication:</strong> Required</p>
+<ul class="simple">
+<li><p><strong>POST</strong>: Deletes the users account.</p></li>
+</ul>
+<p>—</p>
+</section>
+<section id="verify-otp">
+<h3>Verify OTP<a class="headerlink" href="#verify-otp" title="Link to this heading">¶</a></h3>
+<p>Allows users to verify the OTP sent to their email.</p>
+<p><strong>Route:</strong> <cite>/verify_otp</cite>
+<strong>Methods:</strong> <cite>POST</cite></p>
+<ul class="simple">
+<li><p><strong>POST</strong>: Verifies the OTP.</p></li>
+</ul>
+<p>—</p>
+</section>
 <section id="logout">
 <h3>Logout<a class="headerlink" href="#logout" title="Link to this heading">¶</a></h3>
 <p>Logs out the current user.</p>
 <p><strong>Route:</strong> <cite>/logout</cite>
-<strong>Methods:</strong> <cite>POST</cite></p>
+<strong>Methods:</strong> <cite>POST</cite>
+<strong>Authentication:</strong> Required</p>
 <p><strong>Features:</strong>
 - Ends the user session.
 - Redirects to the login page.</p>
@@ -109,6 +203,14 @@
 <section id="blueprint-details">
 <h2>Blueprint Details<a class="headerlink" href="#blueprint-details" title="Link to this heading">¶</a></h2>
 <p>The <cite>auth</cite> Blueprint is registered in the <cite>stonks.auth</cite> module and contains all the authentication-related functionality.</p>
+<p>—</p>
+<section id="helper-functions">
+<h3>Helper Functions<a class="headerlink" href="#helper-functions" title="Link to this heading">¶</a></h3>
+<p>The <cite>auth</cite> Blueprint includes several helper functions to facilitate user authentication and authorization.</p>
+<ul class="simple">
+<li><p><cite>generate_otp()</cite>: Generates a random OTP for authentication of the user after signup.</p></li>
+</ul>
+</section>
 </section>
 </section>
 

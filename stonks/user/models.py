@@ -8,15 +8,36 @@ import logging
 
 database = SQLAlchemy()
 
-
+# Association table for the many-to-many relationship between watchlist and stock
 watchlist_stock_association = database.Table(
     'watchlist_stock',
     database.Column('watchlist_id', database.Integer, database.ForeignKey('watchlist.id'), primary_key=True),
     database.Column('stock_id', database.Integer, database.ForeignKey('stock.id'), primary_key=True)
 )
 
-
 class User(UserMixin, database.Model):
+    """
+    User model for the database
+
+    Attributes:
+        id (int): The user ID
+        username (str): The username of the user
+        email (str): The email of the user
+        email_verified (bool): Whether the email is verified
+        created_at (datetime): Date of account creation
+        profile_picture (str): URL to the profile picture
+        notification_enabled (bool): Whether to send notifications to the user
+        password (str): The hashed password of the user
+        watchlist (Watchlist): The watchlist of the user
+
+    Methods:
+        set_password: Set the password of the user
+        check_password: Check if the password is correct
+        generate_reset_token: Generate a token for resetting the password
+        check_token: Check if the token is valid
+        generate_email_change_token: Generate a token for changing the email
+        check_email_change_token: Check if the email change token is valid
+    """
     __tablename__ = 'user'
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -30,12 +51,34 @@ class User(UserMixin, database.Model):
     watchlist = relationship('Watchlist', uselist=False, back_populates='user', cascade='all, delete-orphan')
 
     def set_password(self, password):
+        """
+        Hash the password and set it for the user
+
+        Args:
+            password (str): The password to hash
+        """
         self.password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     def check_password(self, password):
+        """
+        Check if the password is correct
+
+        Args:
+            password (str): The password to check
+        """
         return bcrypt.checkpw(password.encode('utf-8'), self.password.encode('utf-8'))
     
     def generate_reset_token(self,app=None, expire_time=600):
+        """
+        Generate a token for resetting the password
+
+        Args:
+            app (Flask): The Flask app
+            expire_time (int): Time in seconds for the token to expire
+
+        Returns:
+            str: The token for resetting the password
+        """
         if app is None:
             raise ValueError('app must be provided')
         
@@ -47,6 +90,16 @@ class User(UserMixin, database.Model):
     
     @staticmethod
     def check_token(token,app=None):
+        """
+        Check if the token is valid
+
+        Args:
+            token (str): The token to check
+            app (Flask): The Flask app
+
+        Returns:
+            User: The user if the token is valid
+        """
         if app is None:
             raise ValueError('app must be provided')
         
@@ -58,8 +111,18 @@ class User(UserMixin, database.Model):
         except jwt.InvalidTokenError:
             return None
         
-
     def generate_email_change_token(self, new_email, app=None, expire_time=600):
+        """
+        Generate a token for changing the email
+
+        Args:
+            new_email (str): The new email
+            app (Flask): The Flask app
+            expire_time (int): Time in seconds for the token to expire
+
+        Returns:
+            str: The token for changing the email
+        """
         if app is None:
             raise ValueError('app must be provided')
         
@@ -72,7 +135,16 @@ class User(UserMixin, database.Model):
     
     @staticmethod
     def check_email_change_token(token, app=None):
-        """Verifies the email change token and returns (user, new_email) if valid."""
+        """
+        Check if the email change token is valid
+
+        Args:
+            token (str): The token to check
+            app (Flask): The Flask app
+        
+        Returns:
+            Tuple[User, str]: The user and the new email if the token is valid 
+        """
         if app is None:
             raise ValueError('app must be provided')
 
@@ -95,6 +167,15 @@ class User(UserMixin, database.Model):
             return None, None  # Other JWT-related issues
 
 class Watchlist(database.Model):
+    """
+    Watchlist model for the database
+
+    Attributes:
+        id (int): The watchlist ID
+        user_id (int): The user ID
+        user (User): The user of the watchlist
+        stocks (List[Stock]): The stocks in the watchlist
+    """
     __tablename__ = 'watchlist'
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -103,6 +184,17 @@ class Watchlist(database.Model):
     stocks = relationship('Stock', secondary=watchlist_stock_association, back_populates='watchlists')
 
 class Stock(database.Model):
+    """
+    Stock model for the database
+
+    Attributes:
+        id (int): The stock ID
+        symbol (str): Stock symbol
+        current_price (float): Current price of the stock
+        percent_change (float): Percent change in price
+        last_updated_at (datetime): Date of last update of the stock price
+        watchlists (List[Watchlist]): The watchlists containing the stock
+    """
     __tablename__ = 'stock'
 
     id: Mapped[int] = mapped_column(primary_key=True)

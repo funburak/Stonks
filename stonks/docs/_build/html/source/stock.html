@@ -72,6 +72,16 @@
 - Renders the <cite>stock/watchlist.html</cite> template with the user’s watchlist.</p>
 <p>—</p>
 </section>
+<section id="download-watchlist">
+<h3>Download Watchlist<a class="headerlink" href="#download-watchlist" title="Link to this heading">¶</a></h3>
+<p>Generates a CSV file containing the user’s watchlist and prompts the user to download it.</p>
+<p><strong>Route:</strong> <cite>/download_watchlist</cite>
+<strong>Methods:</strong> <cite>GET</cite>
+<strong>Authentication:</strong> Required</p>
+<p><strong>Response:</strong>
+- Returns a CSV file containing the user’s watchlist.</p>
+<p>—</p>
+</section>
 <section id="delete-a-stock">
 <h3>Delete a Stock<a class="headerlink" href="#delete-a-stock" title="Link to this heading">¶</a></h3>
 <p>Allows the user to remove a stock from their watchlist.</p>
@@ -121,13 +131,6 @@
 <p>Updates stock prices daily and removes stocks that are no longer in any watchlist.</p>
 <p>—</p>
 </section>
-<section id="update-a-single-stock">
-<h3>Update a Single Stock<a class="headerlink" href="#update-a-single-stock" title="Link to this heading">¶</a></h3>
-<p>Fetches and updates the latest price for a single stock.</p>
-<p><strong>Arguments:</strong>
-- <cite>stock</cite> (Stock): The stock object to update.</p>
-<p>—</p>
-</section>
 <section id="get-stock-details">
 <h3>Get Stock Details<a class="headerlink" href="#get-stock-details" title="Link to this heading">¶</a></h3>
 <p>Fetches detailed information about a specific stock using the Yahoo! Finance API.</p>
@@ -142,6 +145,14 @@
 <p>Generates a daily report for all stocks in user watchlists and sends the report via email.</p>
 <p><strong>Arguments:</strong>
 - <cite>app</cite>: The Flask app context.</p>
+<p>—</p>
+</section>
+<section id="send-notification-mail">
+<h3>Send Notification Mail<a class="headerlink" href="#send-notification-mail" title="Link to this heading">¶</a></h3>
+<p>Sends an email notification to the user with the changes in their watchlist.</p>
+<p><strong>Arguments:</strong>
+- <cite>stock_changes</cite> (dict): A dictionary containing stock symbols as keys and price changes as values.</p>
+<p>—</p>
 </section>
 </section>
 </section>

@@ -42,6 +42,12 @@ def get_stock_news(symbol):
 @stock.route('/search_stock')
 @login_required
 def search_stock():
+    """
+    Search for a stock using Yahoo! Finance API
+
+    Returns:
+        str: A JSON string containing search results
+    """
     query = request.args.get('q').strip()
     if not query:
         logging.info("No query provided")
@@ -71,6 +77,9 @@ def search_stock():
 @stock.route('/add_stock', methods=['POST'])
 @login_required
 def add_stock():
+    """
+    Add a stock to the current user's watchlist
+    """
     symbol = request.form.get('symbol', ' ').strip().upper()
 
     if not symbol:
@@ -111,6 +120,9 @@ def add_stock():
 @stock.route('/watchlist')
 @login_required
 def watchlist_page():
+    """
+    Watchlist page for the current user
+    """
     if not current_user.watchlist:
         current_user.watchlist = Watchlist(user=current_user)
         database.session.commit()
@@ -122,6 +134,9 @@ def watchlist_page():
 @stock.route('/download-watchlist')
 @login_required
 def download_watchlist():
+    """
+    Download the watchlist as a CSV file
+    """
     if not current_user.watchlist:
         flash('Watchlist not found', 'danger')
         return redirect(url_for('stock.watchlist_page'))
@@ -191,6 +206,11 @@ def update_stock(stock: Stock, stock_changes):
     last_price = stock.current_price
     ticker = yf.Ticker(stock.symbol)
     stock.current_price = float(ticker.info.get('currentPrice', None))
+
+    if last_price == stock.current_price:
+        logging.info(f"No price change in {stock.symbol}")
+        return
+
     if last_price and ((last_price / stock.current_price >= 1.02) or (last_price / stock.current_price <= 0.98)):
         logging.info(f"%2 price change in {stock.symbol}")
         users = [watchlist.user for watchlist in stock.watchlists]
@@ -216,6 +236,9 @@ def send_notification_mail(stock_changes):
 @stock.route('/delete_stock/<int:stock_id>', methods=['POST'])
 @login_required
 def delete_stock(stock_id):
+    """
+    Delete a stock from the current user's watchlist
+    """
     if not current_user.watchlist:
         flash('Watchlist not found', 'danger')
         return redirect(url_for('stock.watchlist_page'))
@@ -238,6 +261,9 @@ def delete_stock(stock_id):
 @stock.route('/stock_details/<int:stock_id>')
 @login_required
 def stock_details(stock_id):
+    """
+    Page to display the stock details for a given stock
+    """
     if not current_user.watchlist:
         flash('Watchlist not found', 'danger')
         return redirect(url_for('stock.watchlist_page'))
@@ -312,7 +338,9 @@ def get_stock_details(symbol):
         return None
     
 def generate_daily_report(app):
-    """Generate a well-formatted daily report for the watchlist."""
+    """
+    Generate a daily stock watchlist report for all users that has enabled notifications
+    """
     with app.app_context():
         watchlists = Watchlist.query.all()
         mail_handler = current_app.extensions['mail_handler']

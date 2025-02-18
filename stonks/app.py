@@ -9,6 +9,9 @@ from apscheduler.triggers.cron import CronTrigger
 from flask_migrate import Migrate
 
 def create_app():
+    """
+    Create the Flask app and register the configuration, database, mail, blueprints, extensions and error pages
+    """
     app = Flask(__name__, template_folder='../templates')
     csrf = CSRFProtect(app)
     register_config(app)
@@ -46,7 +49,7 @@ def register_config(app: Flask):
 
 def register_extensions(app: Flask):
     """
-    Register cache, login manager and scheduler extensions
+    Register cache, login manager, scheduler and limiter extensions
 
     Args:
         app (Flask): The Flask app

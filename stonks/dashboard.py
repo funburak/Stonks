@@ -6,6 +6,9 @@ dashboard = Blueprint('dashboard', __name__)
 
 @dashboard.route('/')
 def homepage():
+    """
+    Homepage route
+    """
     if current_user.is_authenticated:
         if current_user and current_user.watchlist:
             stock_symbols = [stock.symbol for stock in current_user.watchlist.stocks]

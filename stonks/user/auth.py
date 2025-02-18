@@ -14,6 +14,9 @@ auth = Blueprint('auth', __name__)
 
 @auth.route('/signup', methods=['GET', 'POST'])
 def signup():
+    """
+    Page for signing up a new user
+    """
     # # If the user is already logged in, redirect to the homepage
     if current_user.is_authenticated:
         flash('Logout to sign up', 'info')
@@ -45,6 +48,9 @@ def signup():
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
+    """
+    Page for logging in a user
+    """
     # If the user is already logged in, redirect to the homepage
     if current_user.is_authenticated and not session.get('autofill_username'):
         return redirect(url_for('dashboard.homepage'))
@@ -72,6 +78,9 @@ def login():
 
 @auth.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
+    """
+    Page for resetting a user's password
+    """
     form = ForgotPasswordForm(request.form)
 
     if request.method == 'POST' and form.validate_on_submit():
@@ -97,6 +106,9 @@ def forgot_password():
 
 @auth.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
+    """
+    Page for resetting a user's password
+    """
     user = User.check_token(token=token, app=current_app)
     if not user:
         flash('Invalid or expired token', 'danger')
@@ -123,6 +135,9 @@ def reset_password(token):
 @auth.route('/profile')
 @login_required
 def profile_page():
+    """
+    Page for the user's profile
+    """
     user = User.query.filter_by(id=current_user.id).first()
     username_form = UpdateUsernameForm()
     email_form = UpdateEmailForm()
@@ -135,6 +150,9 @@ def profile_page():
 @auth.route('/upload_profile_picture', methods=['POST'])
 @login_required
 def upload_profile_picture():
+    """
+    Upload the profile picture to Cloudinary for the user
+    """
     if 'profile_picture' not in request.files:
         flash("No file selected!", "danger")
         return redirect(url_for('auth.profile_page'))
@@ -167,6 +185,12 @@ def upload_profile_picture():
 @auth.route('/toggle_notifications', methods=['POST'])
 @login_required
 def toggle_notifications():
+    """
+    Toggle the notification settings for the user
+
+    Returns:
+        JSON: A JSON response with the success status
+    """
     data = request.get_json()
 
     if 'notification_enabled' in data:
@@ -179,6 +203,9 @@ def toggle_notifications():
 @auth.route('/update_username', methods=['POST'])
 @login_required
 def update_username():
+    """
+    Update the username for the user
+    """
     form = UpdateUsernameForm(request.form)
 
     if form.validate_on_submit():
@@ -201,6 +228,9 @@ def update_username():
 @auth.route('/update_email', methods=['POST'])
 @login_required
 def update_email():
+    """
+    Update the email for the user and send a verification email
+    """
     form = UpdateEmailForm(request.form)
 
     if form.validate_on_submit():
@@ -231,6 +261,9 @@ def update_email():
 @auth.route('/confirm_email_change/<token>', methods=['GET', 'POST'])
 @login_required
 def confirm_email_change(token):
+    """
+    Confirm the email change for the user
+    """
     user, new_email = User.check_email_change_token(token, app=current_app)
         
     if not user:
@@ -257,6 +290,9 @@ def confirm_email_change(token):
 @auth.route('/delete_account', methods=['POST'])
 @login_required
 def delete_account():
+    """
+    Delete the account for the user
+    """
     user = User.query.filter_by(id=current_user.id).first()
     if user:
         try:
@@ -288,7 +324,6 @@ def generate_otp(username, email, password):
     totp = pyotp.TOTP(pyotp.random_base32(), interval=300) # Generate a TOTP with a 5 minute interval
     otp = totp.now()
     
-
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
     session['pending_user'] = {
@@ -310,6 +345,9 @@ def generate_otp(username, email, password):
 
 @auth.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
+    """
+    Verify the OTP sent to the user's email
+    """
     if 'pending_user' not in session:
         flash('No pending user', 'danger')
 
@@ -356,6 +394,9 @@ def verify_otp():
 @auth.route('/logout', methods=['POST'])
 @login_required
 def logout():
+    """
+    Logout the user
+    """
     logging.info(f"{current_user.username} logged out")
     logout_user()
     flash('Logged out successfully', 'success')
