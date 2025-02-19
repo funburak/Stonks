@@ -25,19 +25,23 @@ def get_stock_news(symbol):
     Returns:
         list: A list of news
     """
-    news = yf.Search(symbol, news_count=3).news
+    try:
+        news = yf.Search(symbol, news_count=3).news
 
-    # Filter the response
-    filtered_news = []
-    for article in news:
-        filtered_news.append({
-            "title": article['title'],
-            "link": article['link'],
-            "publishTime": datetime.fromtimestamp(article['providerPublishTime']).strftime("%d %B %Y %H:%M"),
-            "thumbnail": article['thumbnail']['resolutions'][0]['url'] if 'thumbnail' in article else None
-        })
+        # Filter the response
+        filtered_news = []
+        for article in news:
+            filtered_news.append({
+                "title": article['title'],
+                "link": article['link'],
+                "publishTime": datetime.fromtimestamp(article['providerPublishTime']).strftime("%d %B %Y %H:%M"),
+                "thumbnail": article['thumbnail']['resolutions'][0]['url'] if 'thumbnail' in article else None
+            })
 
-    return filtered_news
+        return filtered_news
+    except Exception as e:
+        logging.error(f"An error occurred while fetching news for {symbol}: {e}")
+        return []
 
 @stock.route('/search_stock')
 @login_required
