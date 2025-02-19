@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, flash, redirect, url_for, session
+from flask import Blueprint, render_template, flash, redirect, url_for
 from stonks.stocks.stock import get_stock_news
 from flask_login import current_user
 

@@ -17,7 +17,7 @@ login_manager = LoginManager()
 timezone = os.getenv("TZ", "Etc/GMT-3")
 scheduler = BackgroundScheduler(timezone=timezone)
 
-limiter = Limiter(get_remote_address, default_limits=["100 per day", "20 per hour"])
+limiter = Limiter(get_remote_address, default_limits=["20 per hour"])
 
 login_manager.login_view = "auth.login"
 login_manager.login_message = "Please log in to access Stonks"
