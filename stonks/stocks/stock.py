@@ -338,7 +338,7 @@ def get_stock_details(symbol):
 
         return json.dumps(stock_data)
     except Exception as e:
-        logging.info(f"Error occured while fetching stock details for {symbol}")
+        logging.error(f"Error occured while fetching stock details for {symbol}: {e}")
         return None
     
 def generate_daily_report(app):
