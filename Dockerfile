@@ -41,4 +41,4 @@ RUN poetry install --no-interaction --no-cache
 EXPOSE 5000
 
 # Run the application
-CMD ["poetry", "run", "gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "stonks.wsgi:app"]
+CMD ["poetry", "run", "gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "stonks.wsgi:app"]
